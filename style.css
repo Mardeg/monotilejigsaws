@@ -4,4 +4,3 @@ main {display:grid;margin:0 auto;align-items:center;width:fit-content}
 header,figcaption {font-variant:small-caps;text-align:center;font-size:xx-large;font-family:"C64 Pro"}
 a[style] {display:inline-block;width:267px;height:250px;background:no-repeat var(--vg);font-size:18pt}
 figcaption:has(+ a:hover),figure:focus-within > figcaption {color:#4D44FF}
-figure{width:267px}
