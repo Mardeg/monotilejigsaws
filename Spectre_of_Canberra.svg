@@ -131,8 +131,8 @@ document.onreadystatechange = () => {
 // Touch support for dragging and two-finger swipe rotation. 
 const ROTATION_SENSITIVITY = 0.35; // degrees per pixel of second-finger vertical movement 
 const MOVE_THRESHOLD = 2; // pixels 
-let primaryTouch = null; // {	id,	startX, startY,	elem, origTx,	origTy, origAngle, cx, cy, moved,	 currentAngle }
-let rotationTouch = null; // {	id, startY, startAngle }
+let primaryTouch = null; // {	id,	startX, startY,	elem, origTx,	origTy, origAngle, moved,	 currentAngle }
+let rotationTouch = null; // {	id, startY, startAngle, elem }
 const pieceSelector = 'g[transform^="translate"]';
 let piecesCache = null;
 
@@ -144,9 +144,7 @@ function parseTransform(el) {
   const t = {
     tx: 0,
     ty: 0,
-    angle: 0,
-    cx: 0,
-    cy: 0
+    angle: 0
   };
   const tf = (el.getAttribute('transform') || '').trim();
   const trMatch = tf.match(/translate\(\s*([-\d.+e]+)(?:[ ,]\s*([-\d.+e]+))?\s*\)/i);
@@ -154,31 +152,17 @@ function parseTransform(el) {
     t.tx = parseFloat(trMatch[1]) || 0;
     t.ty = parseFloat(trMatch[2]) || 0;
   }
-  const rotMatch = tf.match(/rotate\(\s*([-\d.+e]+)(?:[ ,]\s*([-\d.+e]+)[ ,]\s*([-\d.+e]+))?\s*\)/i);
+  const rotMatch = tf.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
   if(rotMatch) {
     t.angle = parseFloat(rotMatch[1]) || 0;
-    if(rotMatch[2] && rotMatch[3]) {
-      t.cx = parseFloat(rotMatch[2]);
-      t.cy = parseFloat(rotMatch[3]);
-    }
-  } // If no center from rotate, attempt bbox center 
-  if(t.cx === 0 && t.cy === 0) {
-    try {
-      const bb = el.getBBox();
-      t.cx = bb.x + bb.width / 2;
-      t.cy = bb.y + bb.height / 2;
-    }
-    catch (e) {
-      t.cx = 0;
-      t.cy = 0;
-    }
   }
   return t;
 }
 
-function writeTransform(el, tx, ty, angle, cx, cy) {
-  const rotPart = (typeof angle === 'number') ? ` rotate(${angle} ${cx} ${cy})` : '';
-  el.setAttribute('transform', `translate(${tx} ${ty})${rotPart}`);
+function writeTransform(el, tx, ty, angle) {
+  const rotPart = (typeof angle === 'number') ? ` rotate(${angle})` : '';
+  el.setAttribute('transform', `translate(${tx} ${ty})`);
+  el.firstElementChild.setAttribute('transform', `${rotPart}`);
 }
 
 function getTouchById(touches, id) {
@@ -206,7 +190,8 @@ function onTouchStart(e) {
     const piece = findPieceElement(target);
     if(!piece) continue; // If no primary touch, set this as primary (drag) 
     if(!primaryTouch) {
-      const tf = parseTransform(piece);
+      const tf = parseTransform(piece),
+      tfc = parseTransform(piece.firstElementChild);
       primaryTouch = {
         id: t.identifier,
         startX: t.clientX,
@@ -214,17 +199,17 @@ function onTouchStart(e) {
         elem: piece,
         origTx: tf.tx,
         origTy: tf.ty,
-        origAngle: tf.angle,
-        cx: tf.cx,
-        cy: tf.cy,
+        origAngle: tfc.angle,
         moved: false
-      }; // Refresh pieces cache in case DOM changed refreshPiecesCache(); 
+      }; // Refresh pieces cache in case DOM changed 
+      refreshPiecesCache();
       e.preventDefault();
     } else if(!rotationTouch) { // If a second finger touches (anywhere), start rotationTouch relative to the primary's baseline 
+      const tf = parseTransform(piece.firstElementChild);
       rotationTouch = {
         id: t.identifier,
         startY: t.clientY,
-        startAngle: primaryTouch.origAngle
+        startAngle: primaryTouch.origAngle,
       };
       e.preventDefault();
     }
@@ -245,7 +230,7 @@ function onTouchMove(e) {
         const newTx = primaryTouch.origTx + dx;
         const newTy = primaryTouch.origTy + dy;
         const curAngle = primaryTouch.currentAngle !== undefined ? primaryTouch.currentAngle : primaryTouch.origAngle;
-        writeTransform(primaryTouch.elem, newTx, newTy, curAngle, primaryTouch.cx, primaryTouch.cy);
+        writeTransform(primaryTouch.elem, newTx, newTy, curAngle);
       }
     }
   }
@@ -265,7 +250,7 @@ function onTouchMove(e) {
           ty = primaryTouch.origTy + (pt.clientY - primaryTouch.startY);
         }
       }
-      writeTransform(primaryTouch.elem, tx, ty, newAngle, primaryTouch.cx, primaryTouch.cy);
+      writeTransform(primaryTouch.elem, tx, ty, newAngle);
     }
   }
 }
@@ -294,12 +279,6 @@ function onTouchEnd(e) {
 function onTouchCancel(e) {
   onTouchEnd(e);
 }
-// Optional utility for other code to rotate a piece programmatically: 
-window.__jigsawTouchRotateBy = function(elem, deltaDegrees) {
-  const tf = parseTransform(elem);
-  const newAngle = tf.angle + deltaDegrees;
-  writeTransform(elem, tf.tx, tf.ty, newAngle, tf.cx, tf.cy);
-};
 
 /* ]]> */
 // @license-end
