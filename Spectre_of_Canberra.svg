@@ -258,7 +258,14 @@ function onTouchMove(e) {
 function onTouchEnd(e) {
   for(let i = 0; i < e.changedTouches.length; i++) {
     const t = e.changedTouches[i];
-    if(primaryTouch && t.identifier === primaryTouch.id) { // commit any rotation 
+    if(primaryTouch && t.identifier === primaryTouch.id) {
+      let et = primaryTouch.elem;
+      if ((insideJigsaw(t))&&(et instanceof SVGGElement)&&(wp!=et)&&(wpc < 9999999)) {
+        wp = et;
+        wpc++;
+        document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
+      }
+      // commit any rotation 
       if(primaryTouch.currentAngle !== undefined) {
         primaryTouch.origAngle = primaryTouch.currentAngle;
         primaryTouch.currentAngle = undefined;
