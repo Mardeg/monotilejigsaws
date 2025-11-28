@@ -27,7 +27,7 @@
 </metadata>
 <style>
 /* <![CDATA[ */
-svg{background-color:#000}
+svg{background-color:#000;touch-action:none}
 text{
   user-select:none;
 }
