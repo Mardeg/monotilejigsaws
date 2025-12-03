@@ -131,8 +131,8 @@ document.onreadystatechange = () => {
 // Touch support for dragging and second-finger swipe rotation. 
 const ROTATION_SENSITIVITY = 0.35; // degrees per pixel of second-finger vertical movement 
 const MOVE_THRESHOLD = 2; // pixels 
-let primaryTouch = null; // {	id,	startX, startY,	elem, origTx,	origTy, origAngle, moved,	 currentAngle }
-let rotationTouch = null; // {	id, startY, startAngle, elem }
+let primaryTouch = null; // {	id,	startX, startY,	elem, origTx,	origTy, origAngle, moved, currentAngle }
+let rotationTouch = null; // { id }
 const pieceSelector = 'g[transform^="translate"]';
 let piecesCache = null;
 
@@ -183,7 +183,6 @@ function onTouchStart(e) {
   if(!e.changedTouches || e.changedTouches.length === 0) return; // For each new touch, check target piece 
   for(let i = 0; i < e.changedTouches.length; i++) {
     const t = e.changedTouches[i];
-    console.log(t.identifier);
     const target = document.elementFromPoint(t.clientX, t.clientY);
     if(!target) continue;
     if(!primaryTouch) {
@@ -207,7 +206,6 @@ function onTouchStart(e) {
       refreshPiecesCache();
       e.preventDefault();
     } else if(!rotationTouch) { // If a second finger touches rotation buttons, rotate relative to the primary's baseline 
-      console.log("Second touch!");
       const tf = parseTransform(primaryTouch.elem.firstElementChild),
       pressed = document.elementFromPoint(t.clientX, t.clientY);
       if(!pressed) continue;
@@ -216,21 +214,19 @@ function onTouchStart(e) {
       ux = parseFloat(v.getAttribute("x")) + 50,
       uy = parseFloat(v.getAttribute("y")) + 50,
       ra = 0;
-      console.log(w);
       const rotMatch = w.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
       if (rotMatch && rotMatch[1]) {
             ra = parseFloat(rotMatch[1]);
       }
-      console.log(ra);
       if(pressed.getAttribute("id") == "cw") {
-        v.setAttribute("transform","rotate(" + (primaryTouch.origAngle + (ra==345?-(ra):15)) + "," + ux +"," + uy +")")
+        console.log(w);
+        v.setAttribute("transform","rotate(" + (ra==345?0:(ra + 15)) + "," + ux +"," + uy +")")
       } else if (pressed.getAttribute("id") == "acw"){
-        v.setAttribute("transform","rotate(" + (primaryTouch.origAngle + (ra==-345?(ra + 345):(ra - 15))) + "," + ux +"," + uy +")")
+        console.log(w);
+        v.setAttribute("transform","rotate(" + (ra + (ra==-345?(ra + 345):(ra - 15))) + "," + ux +"," + uy +")")
       } 
       rotationTouch = {
         id: t.identifier,
-        startY: t.clientY,
-        startAngle: primaryTouch.origAngle,
       };
       e.preventDefault();
     }
