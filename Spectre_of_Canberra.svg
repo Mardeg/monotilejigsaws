@@ -186,9 +186,9 @@ function onTouchStart(e) {
     console.log(t.identifier);
     const target = document.elementFromPoint(t.clientX, t.clientY);
     if(!target) continue;
-    const piece = findPieceElement(target);
-    if(!piece) continue; // If no primary touch, set this as primary (drag) 
     if(!primaryTouch) {
+      const piece = findPieceElement(target);
+      if(!piece) continue; // If no primary touch, set this as primary (drag) 
       const tf = parseTransform(piece),
       tfc = parseTransform(piece.firstElementChild);
       for (const rv of document.querySelectorAll('path[style$="arrow)"]')) {
@@ -208,10 +208,10 @@ function onTouchStart(e) {
       e.preventDefault();
     } else if(!rotationTouch) { // If a second finger touches rotation buttons, rotate relative to the primary's baseline 
       console.log("Second touch!");
-      const tf = parseTransform(piece.firstElementChild),
+      const tf = parseTransform(primaryTouch.elem.firstElementChild),
       pressed = document.elementFromPoint(t.clientX, t.clientY);
       if(!pressed) continue;
-      let v = piece.firstElementChild,
+      let v = primaryTouch.elem.firstElementChild,
       w = v.getAttribute("transform"),
       ux = parseFloat(v.getAttribute("x")) + 50,
       uy = parseFloat(v.getAttribute("y")) + 50,
