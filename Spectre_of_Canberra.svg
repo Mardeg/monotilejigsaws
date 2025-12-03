@@ -223,9 +223,9 @@ function onTouchStart(e) {
       }
       console.log(ra);
       if(pressed.getAttribute("id") == "cw") {
-        v.setAttribute("transform","rotate(" + primaryTouch.origAngle + (ra==345?-(ra):15) + "," + ux +"," + uy +")")
+        v.setAttribute("transform","rotate(" + (primaryTouch.origAngle + (ra==345?-(ra):15)) + "," + ux +"," + uy +")")
       } else if (pressed.getAttribute("id") == "acw"){
-        v.setAttribute("transform","rotate(" + primaryTouch.origAngle + (ra==-345?(ra + 345):(ra - 15)) + "," + ux +"," + uy +")")
+        v.setAttribute("transform","rotate(" + (primaryTouch.origAngle + (ra==-345?(ra + 345):(ra - 15))) + "," + ux +"," + uy +")")
       } 
       rotationTouch = {
         id: t.identifier,
