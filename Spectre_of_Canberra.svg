@@ -220,10 +220,10 @@ function onTouchStart(e) {
       }
       if(pressed.getAttribute("id") == "cw") {
         console.log(w);
-        v.setAttribute("transform","rotate(" + (ra==345?0:(ra + 15)) + "," + ux +"," + uy +")")
+        v.setAttribute("transform","rotate(" + (ra>330?0:(ra + 15)) + "," + ux +"," + uy +")")
       } else if (pressed.getAttribute("id") == "acw"){
         console.log(w);
-        v.setAttribute("transform","rotate(" + (ra + (ra==-345?(ra + 345):(ra - 15))) + "," + ux +"," + uy +")")
+        v.setAttribute("transform","rotate(" + (ra<0?330:(ra - 15)) + "," + ux +"," + uy +")")
       } 
       rotationTouch = {
         id: t.identifier,
