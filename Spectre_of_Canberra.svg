@@ -183,6 +183,7 @@ function onTouchStart(e) {
   if(!e.changedTouches || e.changedTouches.length === 0) return; // For each new touch, check target piece 
   for(let i = 0; i < e.changedTouches.length; i++) {
     const t = e.changedTouches[i];
+    console.log(t.identifier);
     const target = document.elementFromPoint(t.clientX, t.clientY);
     if(!target) continue;
     const piece = findPieceElement(target);
@@ -206,6 +207,7 @@ function onTouchStart(e) {
       refreshPiecesCache();
       e.preventDefault();
     } else if(!rotationTouch) { // If a second finger touches rotation buttons, rotate relative to the primary's baseline 
+      console.log("Second touch!");
       const tf = parseTransform(piece.firstElementChild),
       pressed = document.elementFromPoint(t.clientX, t.clientY);
       if(!pressed) continue;
@@ -214,10 +216,12 @@ function onTouchStart(e) {
       ux = parseFloat(v.getAttribute("x")) + 50,
       uy = parseFloat(v.getAttribute("y")) + 50,
       ra = 0;
+      console.log(w);
       const rotMatch = w.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
       if (rotMatch && rotMatch[1]) {
             ra = parseFloat(rotMatch[1]);
       }
+      console.log(ra);
       if(pressed.getAttribute("id") == "cw") {
         v.setAttribute("transform","rotate(" + primaryTouch.origAngle + (ra==345?-(ra):15) + "," + ux +"," + uy +")")
       } else if (pressed.getAttribute("id") == "acw"){
@@ -732,14 +736,14 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 </g>
 <path id="cw"
    transform="scale(-1,1)"
-   d="m -645,875 a 25,25 0 1 0 34.6410166,-20"
+   d="m -645,882 a 25,25 0 1 0 34.6410166,-20"
    fill="rgba(0,0,255,0)"
    stroke="rgba(0,0,255,0)"
    stroke-width="15"
    style="stroke-linecap:round;stroke-miterlimit:1.8;marker-end:url(#arrow)"
   />
 <path id="acw"
-   d="m 670,875 a 25,25 0 1 0 34.6410166,-20"
+   d="m 670,882 a 25,25 0 1 0 34.6410166,-20"
    fill="rgba(0,0,255,0)"
    stroke="rgba(0,0,255,0)"
    stroke-width="15"
