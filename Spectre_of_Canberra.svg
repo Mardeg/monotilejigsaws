@@ -69,6 +69,27 @@ function offsets(tl) {
     if (transform.type === SVGTransform.SVG_TRANSFORM_TRANSLATE) return [transform.matrix.e,transform.matrix.f];
   }
 }
+function parseTransform(el) {
+  const t = {
+    tx: 0,
+    ty: 0,
+    angle: 0
+  };
+  const tf = (el.getAttribute('transform') || '').trim();
+  const trMatch = tf.match(/translate\(\s*([-\d.+e]+)(?:[ ,]\s*([-\d.+e]+))?\s*\)/i);
+  if(trMatch) {
+    t.tx = parseFloat(trMatch[1]) || 0;
+    t.ty = parseFloat(trMatch[2]) || 0;
+  }
+  const rotMatch = tf.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
+  if(rotMatch) {
+    t.angle = parseFloat(rotMatch[1]) || 0;
+  }
+  return t;
+}
+function writeTransform(el, tx, ty) {
+  el.setAttribute('transform', `translate(${tx} ${ty})`);
+}
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
     const svgCanvas = document.querySelector("svg");
@@ -78,15 +99,11 @@ document.onreadystatechange = () => {
       u.addEventListener("wheel", (e) => {
         e.preventDefault();
         let v = u.firstElementChild,
-        w = v.getAttribute("transform"),
+        w = parseTransform(v),
         ux = parseFloat(v.getAttribute("x")) + 50,
         uy = parseFloat(v.getAttribute("y")) + 50,
-        ra = 0;
+        ra = w.angle;
         wb = -(wb);
-        const rotMatch = w.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
-        if (rotMatch && rotMatch[1]) {
-              ra = parseFloat(rotMatch[1]);
-        }
         if (wb > 0) v.setAttribute("transform","rotate(" + ((e.deltaY > 0)?(ra + (ra==345?-(ra):15)):(ra==-345?(ra + 345):(ra - 15))) + "," + ux +"," + uy +")");
       });
       u.addEventListener("mousedown", (e) => {
@@ -139,29 +156,6 @@ function refreshPiecesCache() {
   piecesCache = new Set(document.querySelectorAll(pieceSelector));
 }
 
-function parseTransform(el) {
-  const t = {
-    tx: 0,
-    ty: 0,
-    angle: 0
-  };
-  const tf = (el.getAttribute('transform') || '').trim();
-  const trMatch = tf.match(/translate\(\s*([-\d.+e]+)(?:[ ,]\s*([-\d.+e]+))?\s*\)/i);
-  if(trMatch) {
-    t.tx = parseFloat(trMatch[1]) || 0;
-    t.ty = parseFloat(trMatch[2]) || 0;
-  }
-  const rotMatch = tf.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
-  if(rotMatch) {
-    t.angle = parseFloat(rotMatch[1]) || 0;
-  }
-  return t;
-}
-
-function writeTransform(el, tx, ty) {
-  el.setAttribute('transform', `translate(${tx} ${ty})`);
-}
-
 function getTouchById(touches, id) {
   for(let i = 0; i < touches.length; i++) {
     if(touches[i].identifier === id) return touches[i];
@@ -205,18 +199,13 @@ function onTouchStart(e) {
       refreshPiecesCache();
       e.preventDefault();
     } else if(!rotationTouch) { // If a second finger touches rotation buttons, do the rotation 
-      const tf = parseTransform(primaryTouch.elem.firstElementChild),
+      let v = primaryTouch.elem.firstElementChild;
+      const tf = parseTransform(v),
       pressed = document.elementFromPoint(t.clientX, t.clientY);
       if(!pressed) continue;
-      let v = primaryTouch.elem.firstElementChild,
-      w = v.getAttribute("transform"),
-      ux = parseFloat(v.getAttribute("x")) + 50,
+      let ux = parseFloat(v.getAttribute("x")) + 50,
       uy = parseFloat(v.getAttribute("y")) + 50,
-      ra = 0;
-      const rotMatch = w.match(/rotate\(([^,)]+)(?:,\s*[^,)]+,\s*[^,)]+)?\)/);
-      if (rotMatch && rotMatch[1]) {
-            ra = parseFloat(rotMatch[1]);
-      }
+      ra = tf.angle;
       if(pressed.getAttribute("id") == "cw") {
         v.setAttribute("transform","rotate(" + (ra>330?0:(ra + 15)) + "," + ux +"," + uy +")")
       } else if (pressed.getAttribute("id") == "acw"){
