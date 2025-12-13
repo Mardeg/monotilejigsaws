@@ -552,6 +552,13 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
      style="fill:context-stroke;fill-rule:evenodd;stroke:none"
      />
 </marker>
+<path id="rb"
+   d="m 0,0 a 25,25 0 1 0 34.6410166,-20"
+   fill="rgba(0,0,255,0)"
+   stroke="rgba(0,0,255,0)"
+   stroke-width="15"
+   style="stroke-linecap:round;stroke-miterlimit:1.8;marker-end:url(#arrow)"
+/>
 </defs>
 <rect x="24" y="11" rx="12" fill="none" stroke-width="6" stroke="yellow" width="141" height="59" filter="url(#glower)" />
 <text x="175" y="40" font-size="48px" font-family="serif" font-weight="900" fill="#888">moves:</text>
@@ -732,19 +739,6 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 </g><g transform="translate(0 0)">
  <use href="#ur" fill="url(#i58)" x="896" y="898" transform="rotate(0)" />
 </g>
-<path id="cw"
-   transform="scale(-1,1)"
-   d="m -645,882 a 25,25 0 1 0 34.6410166,-20"
-   fill="rgba(0,0,255,0)"
-   stroke="rgba(0,0,255,0)"
-   stroke-width="15"
-   style="stroke-linecap:round;stroke-miterlimit:1.8;marker-end:url(#arrow)"
-  />
-<path id="acw"
-   d="m 670,882 a 25,25 0 1 0 34.6410166,-20"
-   fill="rgba(0,0,255,0)"
-   stroke="rgba(0,0,255,0)"
-   stroke-width="15"
-   style="stroke-linecap:round;stroke-miterlimit:1.8;marker-end:url(#arrow)"
-   />
+<use id="cw" href="#rb" x="-645" y="882" transform="scale(-1,1)" />
+<use id="acw" href="#rb" x="670" y="882" />
 </svg>
