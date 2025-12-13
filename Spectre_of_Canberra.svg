@@ -128,8 +128,7 @@ document.onreadystatechange = () => {
     });
   }
 }
-// Touch support for dragging and second-finger swipe rotation. 
-const ROTATION_SENSITIVITY = 0.35; // degrees per pixel of second-finger vertical movement 
+// Touch support for dragging and second-finger tap rotation. 
 const MOVE_THRESHOLD = 2; // pixels 
 let primaryTouch = null; // {	id,	startX, startY,	elem, origTx,	origTy, origAngle, moved, currentAngle }
 let rotationTouch = null; // { id }
