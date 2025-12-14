@@ -90,8 +90,37 @@ function parseTransform(el) {
 function writeTransform(el, tx, ty) {
   el.setAttribute('transform', `translate(${tx} ${ty})`);
 }
+function shuffleArray(ary) {
+  let currentIndex = ary.length, randomIndex;
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [ary[currentIndex], ary[randomIndex]] = [ary[randomIndex], ary[currentIndex]];
+  }
+  return ary;
+}
+function shuffleCoordinates() {
+  const elements = document.querySelectorAll('use[href="#ur"]');
+  const coordinates = [];
+  elements.forEach(element => {
+    const x = element.getAttribute('x');
+    const y = element.getAttribute('y');
+    if (x !== null && y !== null) {
+      coordinates.push({ x: x, y: y });
+    }
+  });
+  shuffleArray(coordinates);
+  elements.forEach((element, index) => {
+    if (index < coordinates.length) {
+      const newCoords = coordinates[index];
+      element.setAttribute('x', newCoords.x);
+      element.setAttribute('y', newCoords.y);
+    }
+  });
+}
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
+    shuffleCoordinates();
     const svgCanvas = document.querySelector("svg");
     let isDragging = false,wb = 1;
     let xcoord,ycoord,cel;
