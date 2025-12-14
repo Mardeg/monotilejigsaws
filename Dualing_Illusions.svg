@@ -160,7 +160,7 @@ document.onreadystatechange = () => {
         wp = et;
         wpc++;
         document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
-      }
+      } else if (!insideJigsaw(e)) cel.setAttribute("transform","translate(0 0)");
     });
     svgCanvas.addEventListener('touchstart', onTouchStart, {
       passive: false
@@ -211,7 +211,8 @@ function onTouchStart(e) {
     if(!target) continue;
     if(!primaryTouch) {
       const piece = findPieceElement(target);
-      if(!piece) continue; // If no primary touch, set this as primary (drag) 
+      if(!piece) continue; // If no primary touch, set this as primary (drag)
+      cel = piece;
       const tf = parseTransform(piece),
       tfc = parseTransform(piece.firstElementChild);
       for (const rv of document.querySelectorAll('path[style$="arrow)"]')) {
@@ -278,7 +279,7 @@ function onTouchEnd(e) {
         wp = et;
         wpc++;
         document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
-      }
+      } else if (!insideJigsaw(e)) cel.setAttribute("transform","translate(0 0)");
       primaryTouch = null;
       rotationTouch = null;
       for (const rv of document.querySelectorAll('path[style$="arrow)"]')) {
