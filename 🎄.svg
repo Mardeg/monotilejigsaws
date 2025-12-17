@@ -277,7 +277,7 @@ function onTouchEnd(e) {
         wp = et;
         wpc++;
         document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
-      } else if (!insideJigsaw(e)) cel.setAttribute("transform","translate(0 0)");
+      } else if (!insideJigsaw(t)) cel.setAttribute("transform","translate(0 0)");
       primaryTouch = null;
       rotationTouch = null;
       for (const rv of document.querySelectorAll('path[style$="arrow)"]')) {
