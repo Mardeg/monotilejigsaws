@@ -261,7 +261,7 @@ function onTouchMove(e) {
       } else {
         primaryTouch.moved = true;
         const newTx = primaryTouch.origTx + dx;
-        const newTy = primaryTouch.origTy + dy;
+        const newTy = primaryTouch.origTy + dy - 100;
         writeTransform(primaryTouch.elem, newTx, newTy);
       }
     }
