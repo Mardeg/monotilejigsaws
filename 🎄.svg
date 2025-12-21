@@ -152,13 +152,13 @@ document.onreadystatechange = () => {
       }
     });
     svgCanvas.addEventListener("mouseup", (e) => {
-      isDragging = false;
       let et = e.target.parentNode;
       if ((insideJigsaw(e))&&(et instanceof SVGGElement)&&(wp!=et)&&(wpc < 9999999)) {
         wp = et;
         wpc++;
         document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
-      } else if (!insideJigsaw(e)) cel.setAttribute("transform","translate(0 0)");
+      } else if (isDragging && !insideJigsaw(e)) cel.setAttribute("transform","translate(0 0)");
+      isDragging = false;
     });
     svgCanvas.addEventListener('touchstart', onTouchStart, {
       passive: false
