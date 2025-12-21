@@ -58,9 +58,9 @@ use[href="#src"]:not([x="244"]) {transform:scale(0.250452)}
 /* <![CDATA[ */
 // @license magnet:?xt=urn:btih:90dc5c0be029de84e523b9b3922520e79e0e6f08&dn=cc0.txt
 let wpc = 0, wp, mpX, mpY;
-function insideJigsaw(m) {
+function insideJigsaw(m,tp) {
   let mX = m.clientX, mY = m.clientY;
-  if (mX != mpX && mY != mpY) return (mX >= 280 && mX <= 720)&&(mY >= 155 && mY <= 850);
+  if (mX != mpX && mY != mpY) return (mX >= 280 && mX <= 720)&&(mY >= (tp?55:155) && mY <= (tp?950:850));
   return false;
 }
 function offsets(tl) {
@@ -273,11 +273,11 @@ function onTouchEnd(e) {
     const t = e.changedTouches[i];
     if(primaryTouch && t.identifier === primaryTouch.id) {
       let et = primaryTouch.elem;
-      if ((insideJigsaw(t))&&(et instanceof SVGGElement)&&(wp!=et)&&(wpc < 9999999)) {
+      if ((insideJigsaw(t,true))&&(et instanceof SVGGElement)&&(wp!=et)&&(wpc < 9999999)) {
         wp = et;
         wpc++;
         document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
-      } else if (!insideJigsaw(t)) cel.setAttribute("transform","translate(0 0)");
+      } else if (!insideJigsaw(t,true)) cel.setAttribute("transform","translate(0 0)");
       primaryTouch = null;
       rotationTouch = null;
       for (const rv of document.querySelectorAll('path[style$="arrow)"]')) {
