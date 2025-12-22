@@ -59,7 +59,7 @@ use[href="#src"]:not([x="244"]) {transform:scale(0.250452)}
 <script>
 /* <![CDATA[ */
 // @license magnet:?xt=urn:btih:90dc5c0be029de84e523b9b3922520e79e0e6f08&dn=cc0.txt
-let wpc = 0, wp, mpX, mpY;
+let wpc = 0, tId = null, wp, mpX, mpY;
 function insideJigsaw(m,tp) {
   let mX = m.clientX, mY = m.clientY;
   if (mX != mpX && mY != mpY) return (mX >= 280 && mX <= 720)&&(mY >= 155 && mY <= (tp?950:850));
@@ -132,7 +132,7 @@ function hint(tX,tY) {
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
     shuffleCoordinates();
-    const svgCanvas = document.querySelector("svg");
+    const svgCanvas = document.querySelector("svg"),ck = document.getElementById("timer");
     let isDragging = false,wb = 1;
     let xcoord,ycoord,cel;
     for (const u of document.querySelectorAll('g[transform^="translate"]')) {
