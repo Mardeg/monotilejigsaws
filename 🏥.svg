@@ -118,6 +118,15 @@ function shuffleCoordinates() {
     }
   });
 }
+function hint(tX,tY) {
+  if (tX && tY) {if (tX > 150 || tY > 100) return;}
+  const cp = document.querySelector("[clip-path]");
+  if (!cp) return;
+  cp.removeAttribute("clip-path");
+  tId = setTimeout(() => {
+    cp.setAttribute("clip-path", "url(#edges)");
+  }, 2000);
+}
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
     shuffleCoordinates();
@@ -159,6 +168,13 @@ document.onreadystatechange = () => {
         document.getElementById("moves").textContent = wpc.toString().padStart(7, "0");
       } else if (isDragging && !insideJigsaw(e)) cel.setAttribute("transform","translate(0 0)");
       isDragging = false;
+    });
+    ck.addEventListener("mouseover", (e) => {
+      const cp = document.querySelector("[clip-path]");
+      if (cp && !tId && e.clientY < 90) hint();
+    });
+    ck.addEventListener("mouseout", (e) => {
+      if (e.clientY > 100 || e.clientX > 150) tId = null;
     });
     svgCanvas.addEventListener('touchstart', onTouchStart, {
       passive: false
@@ -205,6 +221,7 @@ function onTouchStart(e) {
   if(!e.changedTouches || e.changedTouches.length === 0) return; // For each new touch, check target piece 
   for(let i = 0; i < e.changedTouches.length; i++) {
     const t = e.changedTouches[i];
+    hint(t.clientY, t.clientX);
     const target = document.elementFromPoint(t.clientX, t.clientY);
     if(!target) continue;
     if(!primaryTouch) {
