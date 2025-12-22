@@ -119,7 +119,7 @@ function shuffleCoordinates() {
   });
 }
 function hint(tX,tY) {
-  if (tX && tY) {if (tX > 150 && tY > 100) return;}
+  if (tX && tY) {if (tX > 150 || tY > 100) return;}
   const cp = document.querySelector("[clip-path]");
   if (!cp) return;
   cp.removeAttribute("clip-path");
