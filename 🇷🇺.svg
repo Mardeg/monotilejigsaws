@@ -60,7 +60,7 @@ use[href="#src"]:not([x="244"]) {transform:scale(0.250452)}
 let wpc = 0, tId = null, wp, mpX, mpY;
 function insideJigsaw(m,tp) {
   let mX = m.clientX, mY = m.clientY;
-  if (mX != mpX && mY != mpY) return (mX >= 280 && mX <= 720)&&(mY >= 155 && mY <= (tp?950:850));
+  if (mX != mpX && mY != mpY) return (mX >= 230 && mX <= 770)&&(mY >= 105 && mY <= (tp?1000:900));
   return false;
 }
 function offsets(tl) {
