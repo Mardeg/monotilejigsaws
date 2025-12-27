@@ -978,7 +978,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
     </set>
   </text>
 </g>
-<rect onclick="this.setAttribute('data-buttons',this.dataset.buttons=='true'?'false':'true');document.getElementById(this.dataset.buttons=='true'?'Bmode':'SWmode').play();togglebuttons(this.dataset.buttons=='true')" id="jig_progress_rect" x="24" y="75" rx="4" width="141" height="20" fill="url(#jig_progress_grad)" stroke="#050" stroke-width="2">
+<rect data-buttons="false" onclick="this.setAttribute('data-buttons',this.dataset.buttons=='true'?'false':'true');document.getElementById(this.dataset.buttons=='true'?'Bmode':'SWmode').play();togglebuttons(this.dataset.buttons=='true')" id="jig_progress_rect" x="24" y="75" rx="4" width="141" height="20" fill="url(#jig_progress_grad)" stroke="#050" stroke-width="2">
   <title>Toggle rotation method</title>
 </rect>
 <use href="#src" x="244" y="116" clip-path="url(#edges)" />
