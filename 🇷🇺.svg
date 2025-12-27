@@ -321,7 +321,7 @@ function onTouchCancel(e) {
 // Config 
 const NOTIFY_DROP_THRESHOLD = 0.6;
 // percent
-const COMPLETE_THRESHOLD = 5.0;
+const COMPLETE_THRESHOLD = 3.0;
 
 // State
 let lastMismatch = null;
@@ -390,69 +390,94 @@ function svgStringToImageData(svgString, w, h) {
 // Simple resemble-lite comparator with an ignore-antialiasing heuristic.
 // Returns object { misMatchPercentage }
 function compareImageData(a, b) {
-  // a and b are ImageData (same dimensions)
-  const aw = a.width, ah = a.height;
-  if (aw !== b.width || ah !== b.height) throw new Error('Size mismatch');
-  const aData = a.data, bData = b.data;
-  const totalPixels = aw * ah; let diffCount = 0;
-
-  // Helper: luminance
-  function lumAtIdx(data, idx) {
+  // a and b are ImageData (same dimensions) 
+  const aw = a.width, ah = a.height; 
+  if (aw !== b.width || ah !== b.height) throw new Error('Size mismatch'); 
+  const aData = a.data, bData = b.data; const totalPixels = aw * ah;
+  // Helper: luminance 
+  function lumAtIdxData(data, idx) {
     const r = data[idx], g = data[idx + 1], bb = data[idx + 2];
     return 0.2126 * r + 0.7152 * g + 0.0722 * bb;
   }
+  // Simple 3x3 box blur on RGBA arrays (returns a Float32Array of same length)
+  function boxBlurRGBA(src, w, h) { 
+    const out = new Float32Array(src.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+        for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) {
+          for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
+            const i = (yy * w + xx) * 4;
+            rSum += src[i];
+            gSum += src[i + 1];
+            bSum += src[i + 2];
+            aSum += src[i + 3];
+            count++;
+          }
+        }
+        const oi = (y * w + x) * 4;
+        out[oi] = rSum / count;
+        out[oi + 1] = gSum / count;
+        out[oi + 2] = bSum / count;
+        out[oi + 3] = aSum / count;
+      }
+    }
+    return out;
+  }
 
-  // Heuristic: treat a pixel as anti-aliased if its neighbors differ in luminance a lot while this pixel differs only a little.
-  function isPossiblyAntialiased(x, y, data, idx, otherData) {
-    // Compare luminance to 4-neighbors
-    const centerLum = lumAtIdx(data, idx);
+  // Pre-blur both images to reduce AA and tiny subpixel differences
+  const aBlur = boxBlurRGBA(aData, aw, ah);
+  const bBlur = boxBlurRGBA(bData, aw, ah);
+
+  // Anti-alias heuristic (8 neighbors) with looser thresholds
+  function isPossiblyAntialiased(x, y, dataArr, idx, otherArr) {
+    const centerLum = 0.2126 * dataArr[idx] + 0.7152 * dataArr[idx + 1] + 0.0722 * dataArr[idx + 2];
     let bigNeighborDiff = 0;
-    const deltas = [
-      [1, 0], [-1, 0], [0, 1], [0, -1]
-    ];
+    const deltas = [ [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1] ];
     for (const [dx, dy] of deltas) {
       const nx = x + dx, ny = y + dy;
       if (nx < 0 || nx >= aw || ny < 0 || ny >= ah) continue;
       const nIdx = (ny * aw + nx) * 4;
-      const nLum = lumAtIdx(data, nIdx);
-      if (Math.abs(nLum - centerLum) > 10) bigNeighborDiff++;
+      const nLum = 0.2126 * dataArr[nIdx] + 0.7152 * dataArr[nIdx + 1] + 0.0722 * dataArr[nIdx + 2];
+      if (Math.abs(nLum - centerLum) > 18) bigNeighborDiff++;
     }
-    // If neighbors have big differences it's likely an AA pixel.
-    // Also check that the difference to the other image is small (so ignoring an AA pixel is safe).
-    const otherLum = lumAtIdx(otherData, idx);
+    const otherLum = 0.2126 * otherArr[idx] + 0.7152 * otherArr[idx + 1] + 0.0722 * otherArr[idx + 2];
     const centerOtherDiff = Math.abs(centerLum - otherLum);
-    return (bigNeighborDiff >= 2) && (centerOtherDiff < 15);
+    // Looser thresholds: treat as AA if neighbors vary a fair bit AND difference to other is relatively small
+    return (bigNeighborDiff >= 2) && (centerOtherDiff < 30);
   }
 
-  // Pixel comparison loop
+  // Pixel comparison loop using blurred arrays and a Euclidean color distance tolerance
+  let diffCount = 0;
+  const colorTolerance = 20;
+  // Euclidean color distance tolerance (more tolerant than strict equality)
   for (let y = 0; y < ah; y++) {
     for (let x = 0; x < aw; x++) {
       const idx = (y * aw + x) * 4;
-      const ar = aData[idx], ag = aData[idx + 1], ab = aData[idx + 2], aa = aData[idx + 3];
-      const br = bData[idx], bg = bData[idx + 1], bb = bData[idx + 2], ba = bData[idx + 3];
+      const ar = aBlur[idx], ag = aBlur[idx + 1], ab = aBlur[idx + 2], aaVal = aBlur[idx + 3];
+      const br = bBlur[idx], bg = bBlur[idx + 1], bbVal = bBlur[idx + 2], baVal = bBlur[idx + 3];
 
-      // If alpha 0 on both, treat as match
-      if (aa === 0 && ba === 0) continue;
+      // If both fully transparent, treat as match
+      if (aaVal === 0 && baVal === 0) continue;
 
-      const dr = Math.abs(ar - br), dg = Math.abs(ag - bg), db = Math.abs(ab - bb);
-      const maxDiff = Math.max(dr, dg, db);
+      // Euclidean color distance
+      const dr = ar - br, dg = ag - bg, db = ab - bbVal;
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
 
-      // If nearly identical, ok
-      if (maxDiff <= 8) continue;
+      if (dist <= colorTolerance) continue;
 
-      // Check anti-alias heuristic both ways
+      // Check anti-alias heuristic both ways on original (non-blurred) arrays to avoid falsely ignoring real differences
       if (isPossiblyAntialiased(x, y, aData, idx, bData) || isPossiblyAntialiased(x, y, bData, idx, aData)) {
-        // ignore
         continue;
       }
 
       diffCount++;
     }
+
   }
 
   const misMatchPercentage = (diffCount / totalPixels) * 100;
   return { misMatchPercentage };
-
 }
 
 // Progress UI: create rect + gradient in SVG
@@ -483,10 +508,11 @@ function ensureProgressBar() {
   rect.setAttribute('id', 'jig_progress_rect');
   rect.setAttribute('x', '24');
   rect.setAttribute('y', '75');
-  rect.setAttribute('width', '158');
+  rect.setAttribute('rx', '4');
+  rect.setAttribute('width', '141');
   rect.setAttribute('height', '20');
   rect.setAttribute('fill', 'url(#jig_progress_grad)');
-  rect.setAttribute('stroke', 'green');
+  rect.setAttribute('stroke', '#050');
   rect.setAttribute('stroke-width', '2');
   // Insert into svg (above background)
   svg.appendChild(rect);
@@ -500,28 +526,37 @@ function updateProgress(misMatch) {
   const rect = ensureProgressBar();
   if (!grad || !rect) return;
   const stopNodes = grad.querySelectorAll('stop');
-  // Compute splitOffset where the solid green ends = 100 - misMatch
-  const solidEnd = Math.max(0, Math.min(100, 100 - misMatch));
-  // Stop arrangement:
-  // stop0: 0% green (opaque)
-  // stop1: solidEnd% green (opaque)
-  // stop2: solidEnd% transparent
-  // stop3: 100% transparent
+
+  // Ensure numeric
+  const m = Number(misMatch) || 0;
+
+  const HIGH = 72.0; const LOW = 3.0;
+
+  let solidEnd;
+  if (m >= HIGH) { solidEnd = 0; }
+  else if (m <= LOW) { solidEnd = 100; }
+  else {
+    // map m in (HIGH..LOW) -> solidEnd in (0..100) linearly
+    const t = (HIGH - m) / (HIGH - LOW);
+    // 0..1
+    solidEnd = t * 100;
+  }
+
+  // clamp just in case, and format
+  solidEnd = Math.max(0, Math.min(100, solidEnd));
   const s0 = stopNodes[0], s1 = stopNodes[1], s2 = stopNodes[2], s3 = stopNodes[3];
   s0.setAttribute('offset', '0%');
   s0.setAttribute('stop-color', 'green');
   s0.setAttribute('stop-opacity','1');
-  s1.setAttribute('offset', solidEnd + '%');
-  s1.setAttribute('stop-color', 'green');
-  s1.setAttribute('stop-opacity','1');
-  s2.setAttribute('offset', solidEnd + '%');
+  s1.setAttribute('offset', solidEnd.toFixed(2) + '%');
+  s1.setAttribute('stop-color', 'green'); s1.setAttribute('stop-opacity','1');
+  s2.setAttribute('offset', solidEnd.toFixed(2) + '%');
   s2.setAttribute('stop-color', 'green');
   s2.setAttribute('stop-opacity','0');
   s3.setAttribute('offset', '100%');
   s3.setAttribute('stop-color', 'green');
   s3.setAttribute('stop-opacity','0');
 }
-
 // Single check operation: produce cropped image and compare to original reference (the src image)
 async function doSingleComparison() { 
   const crop = createCroppedSvgString();
@@ -934,7 +969,6 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
     </set>
   </text>
 </g>
-<use href="#src" x="244" y="116" clip-path="url(#edges)" />
 <g transform="translate(0 0)">
  <use href="#ur" fill="url(#i39)" x="376" y="2" transform="rotate(0)" />
 </g><g transform="translate(0 0)">
@@ -1096,4 +1130,5 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 </g>
 <use id="cw" href="#rb" x="-645" y="882" transform="scale(-1,1)" />
 <use id="acw" href="#rb" x="670" y="882" />
+<use href="#src" x="244" y="116" clip-path="url(#edges)" />
 </svg>
