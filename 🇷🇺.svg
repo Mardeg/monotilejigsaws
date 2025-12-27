@@ -319,16 +319,16 @@ function onTouchCancel(e) {
 
 (function () {
 // Config 
-const NOTIFY_DROP_THRESHOLD = 0.4;
+const NOTIFY_DROP_THRESHOLD = 0.6;
 // percent
-const COMPLETE_THRESHOLD = 3.0;
+const COMPLETE_THRESHOLD = 5.0;
 
 // State
 let lastMismatch = null;
 
-// Utility: find the <use href="#src"> and <image id="src">
+// Utility: find the <use clip-path> and <image id="src">
 function getSrcUseAndImage() { 
-  const useEl = document.querySelector('use[href="#src"]'); 
+  const useEl = document.querySelector('[clip-path]'); 
   const imgEl = document.getElementById('src');
   if (!useEl || !imgEl) return null;
   return { useEl, imgEl };
@@ -374,7 +374,8 @@ function svgStringToImageData(svgString, w, h) {
       const canvas = document.getElementById('clonvas');
       canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d');
       // Clear and draw
-      ctx.clearRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
       const imgData = ctx.getImageData(0, 0, w, h);
       URL.revokeObjectURL(url);
       resolve({ imgData, canvas });
@@ -480,10 +481,10 @@ function ensureProgressBar() {
 
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   rect.setAttribute('id', 'jig_progress_rect');
-  rect.setAttribute('x', '2');
-  rect.setAttribute('y', '90');
-  rect.setAttribute('width', '100');
-  rect.setAttribute('height', '5');
+  rect.setAttribute('x', '24');
+  rect.setAttribute('y', '75');
+  rect.setAttribute('width', '158');
+  rect.setAttribute('height', '20');
   rect.setAttribute('fill', 'url(#jig_progress_grad)');
   rect.setAttribute('stroke', 'green');
   rect.setAttribute('stroke-width', '2');
@@ -577,7 +578,6 @@ async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
-    console.log(mm);
     // Update progress UI
     updateProgress(mm);
     // Notify if decreased > threshold
@@ -586,14 +586,12 @@ async function checkMatchAndMaybeReport() {
       if (drop > NOTIFY_DROP_THRESHOLD) {
         const msg = `misMatchPercentage decreased by ${drop.toFixed(2)}% -> ${mm.toFixed(2)}%`;
         console.log(msg);
-        try { alert(msg); } catch(e) {}
       }
     }
     // Completion trigger
     if (mm < COMPLETE_THRESHOLD) {
       const msg = `COMPLETED: misMatchPercentage ${mm.toFixed(2)}%`;
       console.log(msg);
-      try { alert(msg); } catch(e) {}
     }
 
     lastMismatch = mm;
