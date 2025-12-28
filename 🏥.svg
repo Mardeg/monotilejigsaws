@@ -75,6 +75,7 @@ function togglebuttons(sw) {
     }
 }
 function rot8(tg,r,x,y,c) {
+  if(document.getElementById('rb').getAttribute('stroke')!='rgba(0,0,255,1)') return;
   const q = parseTransform(tg);
   r = r || q.angle;
   x = x || parseFloat(tg.getAttribute("x")) + 50;
