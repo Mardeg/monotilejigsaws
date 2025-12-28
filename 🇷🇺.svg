@@ -76,6 +76,7 @@ function togglebuttons(sw) {
     }
 }
 function rot8(tg,r,x,y,c) {
+  console.log(r,x,y,c);
   const q = parseTransform(tg);
   r = r || q.angle;
   x = x || parseFloat(tg.getAttribute("x")) + 50;
