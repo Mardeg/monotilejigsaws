@@ -52,7 +52,6 @@ text{
 	animation:colon 0.5s 0.25s linear 12000 alternate;
 }
 use[href="#src"]:not([x="244"]) {transform:scale(0.250452)}
-rect[data-buttons="false"] ~ [href="#rb"] {pointer-events:none}
 /* ]]> */
 </style>
 <script>
@@ -293,7 +292,7 @@ function onTouchMove(e) {
       } else {
         primaryTouch.moved = true;
         const newTx = primaryTouch.origTx + dx;
-        const newTy = primaryTouch.origTy + dy;
+        const newTy = primaryTouch.origTy + dy - 100;
         writeTransform(primaryTouch.elem, newTx, newTy);
       }
     }
