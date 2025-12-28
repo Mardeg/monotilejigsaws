@@ -269,6 +269,7 @@ function onTouchStart(e) {
       let ux = parseFloat(v.getAttribute("x")) + 50,
       uy = parseFloat(v.getAttribute("y")) + 50,
       ra = tf.angle;
+      console.log(ra,ux,uy);
       if(pressed.getAttribute("id") == "cw") {
         rot8(v,ra,ux,uy,true);
       } else if (pressed.getAttribute("id") == "acw"){
