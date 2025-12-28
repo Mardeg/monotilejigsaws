@@ -70,7 +70,7 @@ function offsets(tl) {
   }
 }
 function togglebuttons(sw) {
-      document.getElementById('rb').setAttribute("stroke","rgba(0,0,255,"+(sw?"1)":"0)"));
+  document.getElementById('rb').setAttribute("stroke","rgba(0,0,255,"+(sw?"1)":"0)"));
 }
 function rot8(tg,r,x,y,c) {
   if(document.getElementById('rb').getAttribute('stroke')!='rgba(0,0,255,1)') return;
