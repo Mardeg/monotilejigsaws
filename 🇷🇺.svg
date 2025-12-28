@@ -268,9 +268,9 @@ function onTouchStart(e) {
       uy = parseFloat(v.getAttribute("y")) + 50,
       ra = tf.angle;
       if(pressed.getAttribute("id") == "cw") {
-        v.setAttribute("transform","rotate(" + (ra>330?0:(ra + 15)) + "," + ux +"," + uy +")")
+        rot8(v,ra,ux,uy,true);
       } else if (pressed.getAttribute("id") == "acw"){
-        v.setAttribute("transform","rotate(" + (ra<0?330:(ra - 15)) + "," + ux +"," + uy +")")
+        rot8(v,ra,ux,uy);
       } 
       rotationTouch = {
         id: t.identifier,
