@@ -337,11 +337,11 @@ function onTouchCancel(e) {
 (function () {
 // Config 
 // percent
-const COMPLETE_THRESHOLD = 2.77;
+const COMPLETE_THRESHOLD = 8.0;
 
 // Notification array & state
 const NOTIFY_COUNT = 79;
-const NOTIFY_START = 72.36;
+const NOTIFY_START = 71.05;
 // first entry
 // linear array from NOTIFY_START -> COMPLETE_THRESHOLD (inclusive) with NOTIFY_COUNT entries
 const notifyArray = Array.from({ length: NOTIFY_COUNT }, (_, i) => {
@@ -561,7 +561,7 @@ function updateProgress(misMatch) {
   // Ensure numeric
   const m = Number(misMatch) || 0;
 
-  const HIGH = 72.0; const LOW = 3.0;
+  const HIGH = 71.0; const LOW = 8.0;
 
   let solidEnd;
   if (m >= HIGH) { solidEnd = 0; }
@@ -644,6 +644,7 @@ async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
+    console.log(mm);
     // Update progress UI
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
