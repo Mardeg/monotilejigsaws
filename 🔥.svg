@@ -407,7 +407,10 @@ function getSrcUseAndImage() {
 
 // Clone svg and crop to the area (viewBox) corresponding to useEl.x/useEl.y and img width/height
 
-function createCroppedSvgString() { const topSvg = document.querySelector('svg'); const info = getSrcUseAndImage(); if (!topSvg || !info) return null;
+function createCroppedSvgString() {
+  const rbv = document.querySelector('[data-buttons]').dataset.buttons=='true';
+  if(rbv)togglebuttons();
+  const topSvg = document.querySelector('svg'); const info = getSrcUseAndImage(); if (!topSvg || !info) return null;
   const { useEl, imgEl } = info;
   const srcX = parseFloat(useEl.getAttribute('x') || '0');
   const srcY = parseFloat(useEl.getAttribute('y') || '0');
@@ -431,8 +434,8 @@ function createCroppedSvgString() { const topSvg = document.querySelector('svg')
 
   const serializer = new XMLSerializer();
   const svgString = serializer.serializeToString(clone);
+  if(rbv)togglebuttons(true);
   return { svgString, w: Math.round(w), h: Math.round(h) };
-
 }
 
 // Create an Image from SVG string (via blob URL) and draw to canvas -> ImageData
@@ -458,7 +461,7 @@ function svgStringToImageData(svgString, w, h) {
   });
 }
 
-// Simple resemble-lite comparator with an ignore-antialiasing heuristic.
+// Simple comparator with an ignore-antialiasing heuristic.
 // Returns object { misMatchPercentage }
 function compareImageData(a, b) {
   // a and b are ImageData (same dimensions) 
