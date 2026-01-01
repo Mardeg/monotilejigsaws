@@ -395,6 +395,7 @@ function updateNotifyFromMisMatch(mm) {
 
   // Completion when NOTIFY_PIECE_PLACED is within tolerance of COMPLETE_THRESHOLD
   if (Math.abs(NOTIFY_PIECE_PLACED - COMPLETE_THRESHOLD) <= tolerance) {
+    togglebuttons();
     document.getElementById("jig_progress_rect").setAttribute("stroke","url(#animrot)");
     document.getElementById("jizzmate").play();
   }
@@ -1044,7 +1045,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <path id="rb"
    d="m 0,0 a 25,25 0 1 0 34.6410166,-20"
    fill="rgba(0,0,255,0)"
-   stroke="rgba(0,0,255,0)"
+   stroke="rgba(0,0,255,1)"
    stroke-width="15"
    style="stroke-linecap:round;stroke-miterlimit:1.8;marker-end:url(#arrow)"
 />
@@ -1077,7 +1078,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <rect x="24" y="11" rx="12" fill="none" stroke-width="6" stroke="yellow" width="141" height="59" filter="url(#glower)" />
 <text x="175" y="40" font-size="48px" font-family="serif" font-weight="900" fill="#888">moves:</text>
 <text id="moves" x="175" y="88" font-size="48px" font-family="serif" font-weight="900" fill="#888">0000000</text>
-<rect data-buttons="false" ontouchstart="event.preventDefault();" onclick="this.setAttribute('data-buttons',this.dataset.buttons=='true'?'false':'true');document.getElementById(this.dataset.buttons=='true'?'Bmode':'SWmode').play();togglebuttons(this.dataset.buttons=='true')"
+<rect data-buttons="true" ontouchstart="event.preventDefault();" onclick="this.setAttribute('data-buttons',this.dataset.buttons=='true'?'false':'true');document.getElementById(this.dataset.buttons=='true'?'Bmode':'SWmode').play();togglebuttons(this.dataset.buttons=='true')"
   id="jig_progress_rect" x="24" y="75" rx="4" width="141" height="20" fill="url(#jig_progress_grad)"
   stroke="#050" stroke-width="2">
   <title>Toggle rotation method</title>
@@ -1178,7 +1179,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <use href="#src" x="244" y="116" clip-path="url(#fori78)" opacity="0" />
 <use href="#src" x="244" y="116" clip-path="url(#fori79)" opacity="0" />
 <g transform="translate(0 0)">
- <use href="#ur" fill="url(#i39)" x="376" y="2" transform="rotate(0)" />
+ <use href="#ur" fill="url(#i39)" x="376" y="2" transform="rotate(0)" data-chosen="true" />
 </g><g transform="translate(0 0)">
  <use href="#ur" fill="url(#i78)" x="452" y="2" transform="rotate(0)" />
 </g><g transform="translate(0 0)">
