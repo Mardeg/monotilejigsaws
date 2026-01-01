@@ -316,6 +316,7 @@ function onTouchEnd(e) {
       } else if (primaryTouch && !insideJigsaw(t,true)) cel.setAttribute("transform","translate(0 0)");
       primaryTouch = null;
       rotationTouch = null;
+      document.querySelector('[data-buttons]').setAttribute('data-buttons','false')
       togglebuttons();
     }
     if(rotationTouch && t.identifier === rotationTouch.id) {
