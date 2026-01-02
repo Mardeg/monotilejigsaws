@@ -57,7 +57,7 @@ rect:not([stroke="#050"]) + #timer > text {
 	animation-play-state: paused;
 }
 [transform-origin]{transform-box: fill-box;}
-}
+#lod,#jig_progress_rect{cursor:pointer}
 /* ]]> */
 </style>
 <script>
@@ -77,6 +77,10 @@ function offsets(tl) {
 }
 function togglebuttons(sw) {
   document.getElementById('rb').setAttribute("stroke","rgba(0,0,255,"+(sw?"1)":"0)"));
+}
+function lORd(tt,o) {
+  document.querySelector("svg").style.backgroundColor = (o=="m☀︎ves:")?"#EEE":"#000";
+  tt.textContent = (o=="m☀︎ves:"?"m☪︎︎ves:":"m☀︎ves:");
 }
 function rot8(tg,r,x,y,c) {
   if(document.getElementById('rb').getAttribute('stroke')!='rgba(0,0,255,1)') return;
@@ -429,6 +433,7 @@ function createCroppedSvgString() {
   // Ensure width/height attributes on clone match the image's pixel size so canvas draw is correct
   clone.setAttribute('width', w);
   clone.setAttribute('height', h);
+  clone.setAttribute('style','background-color:#000');
 
   // Set viewBox to the region of the original corresponding to the <use> location + image size.
   // viewBox: minX minY width height
@@ -1085,13 +1090,9 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 </linearGradient>
 </defs>
 <rect x="24" y="11" rx="12" fill="none" stroke-width="6" stroke="yellow" width="141" height="59" filter="url(#glower)" />
-<text x="175" y="40" font-size="48px" font-family="serif" font-weight="900" fill="#888">moves:</text>
-<text id="moves" x="175" y="88" font-size="48px" font-family="serif" font-weight="900" fill="#888">0000000</text>
-<rect data-buttons="true" ontouchstart="event.preventDefault();" onclick="this.setAttribute('data-buttons',this.dataset.buttons=='true'?'false':'true');document.getElementById(this.dataset.buttons=='true'?'Bmode':'SWmode').play();togglebuttons(this.dataset.buttons=='true')"
-  id="jig_progress_rect" x="24" y="75" rx="4" width="141" height="20" fill="url(#jig_progress_grad)"
-  stroke="#050" stroke-width="2">
-  <title>Toggle rotation method</title>
-</rect>
+<text onmousedown="lORd(this,this.textContent)" ontouchstart="lORd(this,this.textContent)"
+  id="lod" x="175" y="40" font-size="48px" font-family="serif" font-weight="900" fill="#777">m☀︎ves:</text>
+<text id="moves" x="175" y="88" font-size="48px" font-family="serif" font-weight="900" fill="#777">0000000</text>
 <g id="timer" font-size="48px" font-family="serif" font-weight="900" mask="url(#tiMask)" filter="url(#glower)">
 	<text id="minutesX10" x="36,38,36,36,36,36,36,36,36,36"
 		y="60,100,140,180,220,260,300,340,380,420">0123456789</text>
@@ -1107,6 +1108,11 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
     </set>
   </text>
 </g>
+<rect data-buttons="true" ontouchstart="event.preventDefault();" onclick="this.setAttribute('data-buttons',this.dataset.buttons=='true'?'false':'true');document.getElementById(this.dataset.buttons=='true'?'Bmode':'SWmode').play();togglebuttons(this.dataset.buttons=='true')"
+  id="jig_progress_rect" x="24" y="75" rx="4" width="141" height="20" fill="url(#jig_progress_grad)"
+  stroke="#050" stroke-width="2">
+  <title>Toggle rotation method</title>
+</rect>
 <use href="#src" x="244" y="116" clip-path="url(#edges)" />
 <use href="#src" x="244" y="116" clip-path="url(#fori01)" opacity="0" />
 <use href="#src" x="244" y="116" clip-path="url(#fori02)" opacity="0" />
