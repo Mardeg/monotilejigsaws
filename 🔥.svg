@@ -53,7 +53,7 @@ text{
 	animation:colon 0.5s 0.25s linear 12000 alternate;
 }
 use[href="#src"]:not([x="244"]) {transform:scale(0.250452)}
-rect:not([stroke="#050"]) + #timer > text {
+#timer:has(+ rect:not([stroke="#050"])) > text {
 	animation-play-state: paused;
 }
 #lod,#jig_progress_rect{cursor:pointer}
@@ -343,7 +343,7 @@ function onTouchCancel(e) {
 (function () {
 // Config 
 // percent
-const COMPLETE_THRESHOLD = 5.57;
+const COMPLETE_THRESHOLD = 0.242;
 
 // Notification array & state
 const NOTIFY_COUNT = 79;
@@ -575,7 +575,7 @@ function updateProgress(misMatch) {
   // Ensure numeric
   const m = Number(misMatch) || 0;
 
-  const HIGH = 64.9; const LOW = 5.6;
+  const HIGH = 64.9; const LOW = 0.242;
 
   let solidEnd;
   if (m >= HIGH) { solidEnd = 0; }
@@ -658,6 +658,7 @@ async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
+    console.log(mm);
     // Update progress UI
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
