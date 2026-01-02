@@ -343,7 +343,7 @@ function onTouchCancel(e) {
 (function () {
 // Config 
 // percent
-const COMPLETE_THRESHOLD = 7.03;
+const COMPLETE_THRESHOLD = 0.83;
 
 // Notification array & state
 const NOTIFY_COUNT = 79;
@@ -575,7 +575,7 @@ function updateProgress(misMatch) {
   // Ensure numeric
   const m = Number(misMatch) || 0;
 
-  const HIGH = 66.46; const LOW = 7.03;
+  const HIGH = 66.47; const LOW = 0.83;
 
   let solidEnd;
   if (m >= HIGH) { solidEnd = 0; }
