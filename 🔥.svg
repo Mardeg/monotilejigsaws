@@ -658,7 +658,6 @@ async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
-    console.log(mm);
     // Update progress UI
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
