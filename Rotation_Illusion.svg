@@ -391,8 +391,13 @@ function updateNotifyFromMisMatch(mm) {
     const drop = lastNotifyValue - NOTIFY_PIECE_PLACED;
     document.getElementById("dropiece").play();
     const pc = document.querySelector('[data-chosen]');
-    pc.style.display = "none";
-    document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]').setAttribute('opacity','1');
+    if(pc){
+      const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
+      if(at){
+	pc.style.display = "none";
+	at.setAttribute('opacity','1');
+      }
+    }  
     // After notifying, advance to the next array entry (so we're ready for the next piece)
     const nextIndex = Math.min(notifyArray.length - 1, matchedIndex + 1);
     lastNotifyValue = NOTIFY_PIECE_PLACED;
@@ -659,6 +664,7 @@ async function checkMatchAndMaybeReport() {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
     // Update progress UI
+    if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
     updateNotifyFromMisMatch(mm);
@@ -1020,16 +1026,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <pattern id="i79" x="46.49" y="27.28" width="128.4" height="192.6" patternTransform="rotate(270)" patternUnits="userSpaceOnUse">
   <use href="#src" />
 </pattern>
-<filter id="b"><feGaussianBlur in="SourceGraphic" stdDeviation="6"/></filter>
-<g id="src" transform="scale(0.8533333)">
-<rect fill="#8C8C8C" width="600" height="900" x="0" y="0" rx="15" ry="15"/>
-  <g id="t"><g id="f" filter="url(#b)"><g id="h"><g id="e">
-    <ellipse style="fill:#F81010;stroke:#000;stroke-width:1" cx="150" cy="50" rx="13" ry="25"/>
-    <ellipse fill="none" stroke="#FFF" stroke-width="1" pathLength="100" stroke-dasharray="50" stroke-dashoffset="-25" cx="150" cy="50" rx="13" ry="25"/></g>
-    <use href="#e" transform="rotate(30,150,150)"/><use href="#e" transform="rotate(60,150,150)"/><use href="#e" transform="rotate(90,150,150)"/><use href="#e" transform="rotate(120,150,150)"/><use href="#e" transform="rotate(150,150,150)"/>
-  </g>
-  <use href="#h" transform="rotate(180,150,150)"/></g><use href="#f" y="300"/><use href="#f" y="600"/></g><use href="#t" x="300"/>
-</g>
+<image id="src" width="512" height="768" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgNjAwIDkwMCIgdmVyc2lvbj0iMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48ZmlsdGVyIGlkPSJiIj48ZmVHYXVzc2lhbkJsdXIgaW49IlNvdXJjZUdyYXBoaWMiIHN0ZERldmlhdGlvbj0iNiIvPjwvZmlsdGVyPjwvZGVmcz4KPHJlY3QgZmlsbD0iIzhDOEM4QyIgd2lkdGg9IjYwMCIgaGVpZ2h0PSI5MDAiIHg9IjAiIHk9IjAiIHJ4PSIxNSIgcnk9IjE1Ii8+CjxnIGlkPSJ0Ij48ZyBpZD0iZiIgZmlsdGVyPSJ1cmwoI2IpIj48ZyBpZD0iaCI+PGcgaWQ9ImUiPgo8ZWxsaXBzZSBzdHlsZT0iZmlsbDojRjgxMDEwO3N0cm9rZTojMDAwO3N0cm9rZS13aWR0aDoxIiBjeD0iMTUwIiBjeT0iNTAiIHJ4PSIxMyIgcnk9IjI1Ii8+CjxlbGxpcHNlIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRiIgc3Ryb2tlLXdpZHRoPSIxIiBwYXRoTGVuZ3RoPSIxMDAiIHN0cm9rZS1kYXNoYXJyYXk9IjUwIiBzdHJva2UtZGFzaG9mZnNldD0iLTI1IiBjeD0iMTUwIiBjeT0iNTAiIHJ4PSIxMyIgcnk9IjI1Ii8+PC9nPgo8dXNlIGhyZWY9IiNlIiB0cmFuc2Zvcm09InJvdGF0ZSgzMCwxNTAsMTUwKSIvPjx1c2UgaHJlZj0iI2UiIHRyYW5zZm9ybT0icm90YXRlKDYwLDE1MCwxNTApIi8+PHVzZSBocmVmPSIjZSIgdHJhbnNmb3JtPSJyb3RhdGUoOTAsMTUwLDE1MCkiLz48dXNlIGhyZWY9IiNlIiB0cmFuc2Zvcm09InJvdGF0ZSgxMjAsMTUwLDE1MCkiLz48dXNlIGhyZWY9IiNlIiB0cmFuc2Zvcm09InJvdGF0ZSgxNTAsMTUwLDE1MCkiLz48L2c+Cjx1c2UgaHJlZj0iI2giIHRyYW5zZm9ybT0icm90YXRlKDE4MCwxNTAsMTUwKSIvPjwvZz48dXNlIGhyZWY9IiNmIiB5PSIzMDAiLz48dXNlIGhyZWY9IiNmIiB5PSI2MDAiLz48L2c+PHVzZSBocmVmPSIjdCIgeD0iMzAwIi8+PC9zdmc+Cg==" />
 <foreignObject id="clontainer" x="244" y="116" width="512" height="768">
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="clonvas" width="512" height="768"></canvas>
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="canvimage" width="512" height="768"></canvas>

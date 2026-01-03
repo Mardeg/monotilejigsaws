@@ -56,8 +56,8 @@ use[href="#src"]:not([x="244"]) {transform:scale(0.250452)}
 #timer:has(+ rect:not([stroke="#050"])) > text {
 	animation-play-state: paused;
 }
-[transform-origin]{transform-box: fill-box;}
 #lod,#jig_progress_rect{cursor:pointer}
+
 /* ]]> */
 </style>
 <script>
@@ -393,7 +393,7 @@ function updateNotifyFromMisMatch(mm) {
     const pc = document.querySelector('[data-chosen]');
     if(pc){
       const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
-      if(attached){
+      if(at){
 	pc.style.display = "none";
 	at.setAttribute('opacity','1');
       }

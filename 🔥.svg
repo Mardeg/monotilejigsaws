@@ -391,8 +391,13 @@ function updateNotifyFromMisMatch(mm) {
     const drop = lastNotifyValue - NOTIFY_PIECE_PLACED;
     document.getElementById("dropiece").play();
     const pc = document.querySelector('[data-chosen]');
-    pc.style.display = "none";
-    document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]').setAttribute('opacity','1');
+    if(pc){
+      const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
+      if(at){
+	pc.style.display = "none";
+	at.setAttribute('opacity','1');
+      }
+    }  
     // After notifying, advance to the next array entry (so we're ready for the next piece)
     const nextIndex = Math.min(notifyArray.length - 1, matchedIndex + 1);
     lastNotifyValue = NOTIFY_PIECE_PLACED;
@@ -659,6 +664,7 @@ async function checkMatchAndMaybeReport() {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
     // Update progress UI
+    if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
     updateNotifyFromMisMatch(mm);

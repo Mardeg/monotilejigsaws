@@ -391,8 +391,13 @@ function updateNotifyFromMisMatch(mm) {
     const drop = lastNotifyValue - NOTIFY_PIECE_PLACED;
     document.getElementById("dropiece").play();
     const pc = document.querySelector('[data-chosen]');
-    pc.style.display = "none";
-    document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]').setAttribute('opacity','1');
+    if(pc){
+      const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
+      if(at){
+	pc.style.display = "none";
+	at.setAttribute('opacity','1');
+      }
+    }  
     // After notifying, advance to the next array entry (so we're ready for the next piece)
     const nextIndex = Math.min(notifyArray.length - 1, matchedIndex + 1);
     lastNotifyValue = NOTIFY_PIECE_PLACED;
@@ -659,6 +664,7 @@ async function checkMatchAndMaybeReport() {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
     // Update progress UI
+    if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
     updateNotifyFromMisMatch(mm);
@@ -1020,8 +1026,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <pattern id="i79" x="46.49" y="27.28" width="128.4" height="192.6" patternTransform="rotate(270)" patternUnits="userSpaceOnUse">
   <use href="#src" />
 </pattern>
-<filter id="b"><feTurbulence baseFrequency=".002 .02" numOctaves="9" result="n"/><feDiffuseLighting surfaceScale="9" lighting-color="#BA8C63"><feDistantLight elevation="60" azimuth="-90"/></feDiffuseLighting><feDisplacementMap in2="n" scale="50"/></filter>
-<rect id="src" width="512" height="768" filter="url(#b)"/>
+<image id="src" width="512" height="768" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxmaWx0ZXIgaWQ9ImEiPjxmZVR1cmJ1bGVuY2UgYmFzZUZyZXF1ZW5jeT0iLjAwMiAuMDIiIG51bU9jdGF2ZXM9IjkiIHJlc3VsdD0ibiIvPjxmZURpZmZ1c2VMaWdodGluZyBzdXJmYWNlU2NhbGU9IjkiIGxpZ2h0aW5nLWNvbG9yPSIjQkE4QzYzIj48ZmVEaXN0YW50TGlnaHQgZWxldmF0aW9uPSI2MCIgYXppbXV0aD0iLTkwIi8+PC9mZURpZmZ1c2VMaWdodGluZz48ZmVEaXNwbGFjZW1lbnRNYXAgaW4yPSJuIiBzY2FsZT0iNTAiLz48L2ZpbHRlcj48cmVjdCByeD0iMTUiIHJ5PSIxNSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI2EpIi8+PC9zdmc+Cg==" />
 <foreignObject id="clontainer" x="244" y="116" width="512" height="768">
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="clonvas" width="512" height="768"></canvas>
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="canvimage" width="512" height="768"></canvas>
