@@ -343,11 +343,11 @@ function onTouchCancel(e) {
 (function () {
 // Config 
 // percent
-const COMPLETE_THRESHOLD = 2.77;
+const COMPLETE_THRESHOLD = 1.7;
 
 // Notification array & state
 const NOTIFY_COUNT = 79;
-const NOTIFY_START = 72.36;
+const NOTIFY_START = 70.98;
 // first entry
 // linear array from NOTIFY_START -> COMPLETE_THRESHOLD (inclusive) with NOTIFY_COUNT entries
 const notifyArray = Array.from({ length: NOTIFY_COUNT }, (_, i) => {
@@ -391,8 +391,13 @@ function updateNotifyFromMisMatch(mm) {
     const drop = lastNotifyValue - NOTIFY_PIECE_PLACED;
     document.getElementById("dropiece").play();
     const pc = document.querySelector('[data-chosen]');
-    pc.style.display = "none";
-    document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]').setAttribute('opacity','1');
+    if(pc){
+      const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
+      if(attached){
+	pc.style.display = "none";
+	at.setAttribute('opacity','1');
+      }
+    }  
     // After notifying, advance to the next array entry (so we're ready for the next piece)
     const nextIndex = Math.min(notifyArray.length - 1, matchedIndex + 1);
     lastNotifyValue = NOTIFY_PIECE_PLACED;
@@ -575,7 +580,7 @@ function updateProgress(misMatch) {
   // Ensure numeric
   const m = Number(misMatch) || 0;
 
-  const HIGH = 72.0; const LOW = 3.0;
+  const HIGH = 70.98; const LOW = 1.7;
 
   let solidEnd;
   if (m >= HIGH) { solidEnd = 0; }
@@ -659,6 +664,7 @@ async function checkMatchAndMaybeReport() {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
     // Update progress UI
+    if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
     updateNotifyFromMisMatch(mm);
@@ -1022,12 +1028,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 </pattern>
 <linearGradient id="c"><stop offset="0%" stop-color="#B6B600"/><stop offset="100%" stop-color="#FF0"/></linearGradient>
 <linearGradient id="d"><stop offset="0%" stop-color="#FB00FB"/><stop offset="100%" stop-color="#000"/></linearGradient>
-<g id="src" transform="scale(5.6888889)">
-<g id="f"><g id="l"><g id="t"><rect width="15" height="15" y="0" x="0" fill="url(#c)"/><rect width="4" height="4" id="b" y="1" x="10" fill="url(#d)"/>
-<use href="#b" y="9"/><rect width="15" height="15" y="0" x="15" fill="url(#d)"/><rect width="4" height="4" id="y" y="1" x="25" fill="url(#c)"/><use href="#y" y="9"/></g>
-<use href="#t" x="30"/><use href="#t" x="60"/></g><use href="#l" y="15" transform="scale(-1,1)" transform-origin="center"/></g>
-<use href="#f" y="30"/><use href="#f" y="60"/><use href="#f" y="90"/><use href="#l" y="120"/>
-</g>
+<image id="src" width="512" height="768" href="data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPgo8c3R5bGU+Ci8qIDwhW0NEQVRBWyAqLwpbaHJlZj0iI2wiXVt0cmFuc2Zvcm09InNjYWxlKC0xLDEpIl17dHJhbnNmb3JtLWJveDogZmlsbC1ib3g7fQovKiBdXT4gKi8KPC9zdHlsZT4KPGxpbmVhckdyYWRpZW50IGlkPSJjIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjQjZCNjAwIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjRkYwIi8+PC9saW5lYXJHcmFkaWVudD4KPGxpbmVhckdyYWRpZW50IGlkPSJkIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjRkIwMEZCIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMDAwIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxnIGlkPSJzcmMiIHRyYW5zZm9ybT0ic2NhbGUoNS42ODg4ODg5KSI+PGcgaWQ9ImYiPjxnIGlkPSJsIj48ZyBpZD0idCI+PHJlY3Qgd2lkdGg9IjE1IiBoZWlnaHQ9IjE1IiB5PSIwIiB4PSIwIiBmaWxsPSJ1cmwoI2MpIi8+PHJlY3Qgd2lkdGg9IjQiIGhlaWdodD0iNCIgaWQ9ImIiIHk9IjEiIHg9IjEwIiBmaWxsPSJ1cmwoI2QpIi8+Cjx1c2UgaHJlZj0iI2IiIHk9IjkiLz48cmVjdCB3aWR0aD0iMTUiIGhlaWdodD0iMTUiIHk9IjAiIHg9IjE1IiBmaWxsPSJ1cmwoI2QpIi8+PHJlY3Qgd2lkdGg9IjQiIGhlaWdodD0iNCIgaWQ9InkiIHk9IjEiIHg9IjI1IiBmaWxsPSJ1cmwoI2MpIi8+PHVzZSBocmVmPSIjeSIgeT0iOSIvPjwvZz4KPHVzZSBocmVmPSIjdCIgeD0iMzAiLz48dXNlIGhyZWY9IiN0IiB4PSI2MCIvPjwvZz48dXNlIGhyZWY9IiNsIiB5PSIxNSIgdHJhbnNmb3JtPSJzY2FsZSgtMSwxKSIgdHJhbnNmb3JtLW9yaWdpbj0iY2VudGVyIi8+PC9nPgo8dXNlIGhyZWY9IiNmIiB5PSIzMCIvPjx1c2UgaHJlZj0iI2YiIHk9IjYwIi8+PHVzZSBocmVmPSIjZiIgeT0iOTAiLz48dXNlIGhyZWY9IiNsIiB5PSIxMjAiLz48L2c+PC9zdmc+Cg==" />
 <foreignObject id="clontainer" x="244" y="116" width="512" height="768">
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="clonvas" width="512" height="768"></canvas>
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="canvimage" width="512" height="768"></canvas>
