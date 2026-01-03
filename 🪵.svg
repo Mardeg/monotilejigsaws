@@ -343,11 +343,11 @@ function onTouchCancel(e) {
 (function () {
 // Config 
 // percent
-const COMPLETE_THRESHOLD = 2.77;
+const COMPLETE_THRESHOLD = 2.0;
 
 // Notification array & state
 const NOTIFY_COUNT = 79;
-const NOTIFY_START = 72.36;
+const NOTIFY_START = 73.95;
 // first entry
 // linear array from NOTIFY_START -> COMPLETE_THRESHOLD (inclusive) with NOTIFY_COUNT entries
 const notifyArray = Array.from({ length: NOTIFY_COUNT }, (_, i) => {
@@ -580,7 +580,7 @@ function updateProgress(misMatch) {
   // Ensure numeric
   const m = Number(misMatch) || 0;
 
-  const HIGH = 72.0; const LOW = 3.0;
+  const HIGH = 73.96; const LOW = 2.0;
 
   let solidEnd;
   if (m >= HIGH) { solidEnd = 0; }
@@ -663,6 +663,7 @@ async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
+    console.log(mm);
     // Update progress UI
     if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
@@ -1026,7 +1027,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <pattern id="i79" x="46.49" y="27.28" width="128.4" height="192.6" patternTransform="rotate(270)" patternUnits="userSpaceOnUse">
   <use href="#src" />
 </pattern>
-<image id="src" width="512" height="768" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxmaWx0ZXIgaWQ9ImEiPjxmZVR1cmJ1bGVuY2UgYmFzZUZyZXF1ZW5jeT0iLjAwMiAuMDIiIG51bU9jdGF2ZXM9IjkiIHJlc3VsdD0ibiIvPjxmZURpZmZ1c2VMaWdodGluZyBzdXJmYWNlU2NhbGU9IjkiIGxpZ2h0aW5nLWNvbG9yPSIjQkE4QzYzIj48ZmVEaXN0YW50TGlnaHQgZWxldmF0aW9uPSI2MCIgYXppbXV0aD0iLTkwIi8+PC9mZURpZmZ1c2VMaWdodGluZz48ZmVEaXNwbGFjZW1lbnRNYXAgaW4yPSJuIiBzY2FsZT0iNTAiLz48L2ZpbHRlcj48cmVjdCByeD0iMTUiIHJ5PSIxNSIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI2EpIi8+PC9zdmc+Cg==" />
+<image id="src" width="512" height="768" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNzY4Ij48ZmlsdGVyIGlkPSJhIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii4wMDIgLjAyIiBudW1PY3RhdmVzPSI5IiByZXN1bHQ9Im4iLz48ZmVEaWZmdXNlTGlnaHRpbmcgc3VyZmFjZVNjYWxlPSI5IiBsaWdodGluZy1jb2xvcj0iI0JBOEM2MyI+PGZlRGlzdGFudExpZ2h0IGVsZXZhdGlvbj0iNjAiIGF6aW11dGg9Ii05MCIvPjwvZmVEaWZmdXNlTGlnaHRpbmc+PGZlRGlzcGxhY2VtZW50TWFwIGluMj0ibiIgc2NhbGU9IjUwIi8+PC9maWx0ZXI+PHJlY3Qgcng9IjE1IiByeT0iMTUiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIvPjwvc3ZnPgo=" />
 <foreignObject id="clontainer" x="244" y="116" width="512" height="768">
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="clonvas" width="512" height="768"></canvas>
   <canvas xmlns="http://www.w3.org/1999/xhtml" id="canvimage" width="512" height="768"></canvas>
