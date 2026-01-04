@@ -389,6 +389,7 @@ function updateNotifyFromMisMatch(mm) {
   // Notify only if progress advanced (previous notify value was larger)
   if (lastNotifyValue > NOTIFY_PIECE_PLACED) {
     const drop = lastNotifyValue - NOTIFY_PIECE_PLACED;
+    document.getElementById("dropiece").play();
     const pc = document.querySelector('[data-chosen]');
     if(pc){
       const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
