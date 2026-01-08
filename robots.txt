@@ -1,0 +1,4 @@
+User-agent: *
+Disallow:
+ 
+Sitemap: https://monotilejigsaws.pages.dev/sitemap.xml
