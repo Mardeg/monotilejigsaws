@@ -151,6 +151,7 @@ function hint(tX,tY) {
 }
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
+    if (window.matchMedia("(prefers-color-scheme: light)").matches) lORd(document.getElementById("lod"),"m☀︎ves:");
     shuffleCoordinates();
     const svgCanvas = document.querySelector("svg"),ck = document.getElementById("timer");
     let isDragging = false,wb = 1;
