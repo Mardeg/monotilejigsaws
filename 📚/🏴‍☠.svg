@@ -29,7 +29,7 @@
 <style>
 /* <![CDATA[ */
 svg{background-color:#000}
-text{
+*{
   user-select:none;
 }
 @keyframes singles{from{transform:translateY(0)}to{transform:translateY(-400px)}}
@@ -85,6 +85,7 @@ function togglebuttons(sw) {
   document.getElementById('rb').setAttribute("stroke","rgba(0,0,255,"+(sw?"1)":"0)"));
 }
 function lORd(tt,o) {
+  if (window.getSelection) window.getSelection().removeAllRanges();
   document.querySelector("svg").style.backgroundColor = (o=="m☀︎ves:")?"#EEE":"#000";
   tt.textContent = (o=="m☀︎ves:"?"m☪︎︎ves:":"m☀︎ves:");
 }
@@ -174,6 +175,7 @@ document.onreadystatechange = () => {
         if (wb > 0) v.setAttribute("transform","rotate(" + ((e.deltaY > 0)?(ra + (ra==345?-(ra):15)):(ra==-345?(ra + 345):(ra - 15))) + "," + ux +"," + uy +")");
       });
       u.addEventListener("mousedown", (e) => {
+	if (window.getSelection) window.getSelection().removeAllRanges();
         if(e.button != 0) return;
         isDragging = true;
         const lc = document.querySelector("[data-chosen]");
@@ -250,6 +252,7 @@ function findPieceElement(node) {
 }
 
 function onTouchStart(e) {
+  if (window.getSelection) window.getSelection().removeAllRanges();
   if(!e.changedTouches || e.changedTouches.length === 0) return; // For each new touch, check target piece 
   for(let i = 0; i < e.changedTouches.length; i++) {
     const t = e.changedTouches[i];
