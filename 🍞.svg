@@ -89,8 +89,8 @@ function rot8(tg,r,x,y,c) {
   r = r || q.angle;
   x = x || parseFloat(tg.getAttribute("x")) + 50;
   y = y || parseFloat(tg.getAttribute("y")) + 50;
-  if(c)tg.setAttribute('transform','rotate(' + (r>330?0:(r + 15)) + ',' + x + ',' + y + ')');
-  else tg.setAttribute('transform','rotate(' + (r<0?330:(r - 15)) + ',' + x + ',' + y + ')');
+  if(c)tg.setAttribute('transform','rotate(' + (r>300?0:(r + 30)) + ',' + x + ',' + y + ')');
+  else tg.setAttribute('transform','rotate(' + (r<0?300:(r - 30)) + ',' + x + ',' + y + ')');
 }
 function parseTransform(el) {
   const t = {
