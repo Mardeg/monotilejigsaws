@@ -669,6 +669,7 @@ async function checkMatchAndMaybeReport(te) {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
+    console.log(mm);
     // Update progress UI
     if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
