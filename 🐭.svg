@@ -35,7 +35,7 @@ svg{background-color:#000}
 @keyframes singles{from{transform:translateY(0)}to{transform:translateY(-400px)}}
 @keyframes tens{from{transform:translateY(0)}to{transform:translateY(-240px)}}
 @keyframes minutes{from{transform:translateY(0)}to{transform:translateY(-400px)}}
-@keyframes minutesX10{from{transform:translateY(0)}to{transform:translateY(-400px)}}
+@keyframes minutesX10{from{transform:translateY(0)}to{transform:translateY(-400px)}}scientology NOT (author:news247planet)
 @keyframes colon{from{fill:yellow}50%{fill:yellow}51%{fill:rgba(0,0,0,0)}to{fill:rgba(0,0,0,0)}}
 #singles{
 	animation:singles 10s steps(10,end) 600 forwards;
@@ -665,7 +665,7 @@ async function doSingleComparison() {
 }
 
 // Main orchestration called from end-of-drag events
-async function checkMatchAndMaybeReport() {
+async function checkMatchAndMaybeReport(te) {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
@@ -673,6 +673,7 @@ async function checkMatchAndMaybeReport() {
     if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
+    if(te) console.log("About to update notify from mismatch for touch");
     updateNotifyFromMisMatch(mm);
   } catch (err) {
     console.error('Comparison error', err);
@@ -694,9 +695,8 @@ if (svgCheckvas) {
   }, false);
 
   svgCheckvas.addEventListener('touchend', function () {
-    setTimeout(() => {
-      checkMatchAndMaybeReport();
-    }, 50);
+    console.log("Try snapping piece in ¼ second for touch.");
+    setTimeout(() => { checkMatchAndMaybeReport("touchend"); }, 250);
   }, false);
 
 }
