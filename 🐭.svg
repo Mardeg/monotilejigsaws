@@ -261,6 +261,8 @@ function onTouchStart(e) {
       const tf = parseTransform(piece),
       tfc = parseTransform(piece.firstElementChild);
       togglebuttons(true);
+      const lc = document.querySelector("[data-chosen]");
+      if(lc)lc.removeAttribute("data-chosen");
       piece.firstElementChild.setAttribute("data-chosen","true")
       primaryTouch = {
         id: t.identifier,

@@ -366,7 +366,7 @@ let NOTIFY_PIECE_PLACED = notifyArray[0];
 let lastNotifyValue = NOTIFY_PIECE_PLACED;
 // stores previous NOTIFY_PIECE_PLACED for notifications
 
-function updateNotifyFromMisMatch(mm,te) {
+function updateNotifyFromMisMatch(mm) {
   mm = parseFloat(mm.toFixed(2));
   const tolerance = 0.23;
   let matchedIndex = -1;
@@ -396,7 +396,7 @@ function updateNotifyFromMisMatch(mm,te) {
   // Notify only if progress advanced (previous notify value was larger)
   if (lastNotifyValue > NOTIFY_PIECE_PLACED) {
     const drop = lastNotifyValue - NOTIFY_PIECE_PLACED;
-    if(!te)document.getElementById("dropiece").play();
+    document.getElementById("dropiece").play();
     const pc = document.querySelector('[data-chosen]');
     if(pc){
       const at = document.querySelector('[clip-path="url(#for' + pc.getAttribute("fill").slice(-4,-1) + ')"]');
@@ -416,7 +416,7 @@ function updateNotifyFromMisMatch(mm,te) {
   if (Math.abs(NOTIFY_PIECE_PLACED - COMPLETE_THRESHOLD) <= tolerance) {
     togglebuttons();
     document.getElementById("jig_progress_rect").setAttribute("stroke","url(#animrot)");
-    if(!te)document.getElementById("jizzmate").play();
+    document.getElementById("jizzmate").play();
   }
 }
 
@@ -667,17 +667,15 @@ async function doSingleComparison() {
 }
 
 // Main orchestration called from end-of-drag events
-async function checkMatchAndMaybeReport(te) {
+async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
-    console.log(mm);
     // Update progress UI
     if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
-    if(te) console.log("About to update notify from mismatch for touch: " + NOTIFY_PIECE_PLACED);
-    updateNotifyFromMisMatch(mm,te);
+    updateNotifyFromMisMatch(mm);
   } catch (err) {
     console.error('Comparison error', err);
   }
@@ -698,8 +696,7 @@ if (svgCheckvas) {
   }, false);
 
   svgCheckvas.addEventListener('touchend', function () {
-    console.log("Try snapping piece in ¼ second for touch.");
-    setTimeout(() => { checkMatchAndMaybeReport("touchend"); }, 250);
+    setTimeout(() => { checkMatchAndMaybeReport(); }, 50);
   }, false);
 
 }
