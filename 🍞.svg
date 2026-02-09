@@ -665,14 +665,16 @@ async function doSingleComparison() {
 }
 
 // Main orchestration called from end-of-drag events
-async function checkMatchAndMaybeReport() {
+async function checkMatchAndMaybeReport(te) {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
+    console.log(mm);
     // Update progress UI
     if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
+    if(te) console.log("About to update notify from mismatch for touch: " + NOTIFY_PIECE_PLACED);
     updateNotifyFromMisMatch(mm);
   } catch (err) {
     console.error('Comparison error', err);
@@ -694,9 +696,8 @@ if (svgCheckvas) {
   }, false);
 
   svgCheckvas.addEventListener('touchend', function () {
-    setTimeout(() => {
-      checkMatchAndMaybeReport();
-    }, 50);
+    console.log("Try snapping piece in ¼ second for touch.");
+    setTimeout(() => { checkMatchAndMaybeReport("touchend"); }, 250);
   }, false);
 
 }
