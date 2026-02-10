@@ -37,7 +37,7 @@ svg{background-color:#000}
 @keyframes minutes{from{transform:translateY(0)}to{transform:translateY(-400px)}}
 @keyframes minutesX10{from{transform:translateY(0)}to{transform:translateY(-400px)}}
 @keyframes colon{from{fill:yellow}50%{fill:yellow}51%{fill:rgba(0,0,0,0)}to{fill:rgba(0,0,0,0)}}
-#singles{
+#singles{ 
 	animation:singles 10s steps(10,end) 600 forwards;
 }
 #tens{
@@ -350,7 +350,7 @@ function onTouchCancel(e) {
 (function () {
 // Config 
 // percent
-const COMPLETE_THRESHOLD = 0.68;
+const COMPLETE_THRESHOLD = 0.23;
 
 // Notification array & state
 const NOTIFY_COUNT = 79;
@@ -588,7 +588,7 @@ function updateProgress(misMatch) {
   // Ensure numeric
   const m = Number(misMatch) || 0;
 
-  const HIGH = 66.23; const LOW = 0.68;
+  const HIGH = 66.23; const LOW = 0.23;
 
   let solidEnd;
   if (m >= HIGH) { solidEnd = 0; }
