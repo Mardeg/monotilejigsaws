@@ -468,7 +468,7 @@ function svgStringToImageData(svgString, w, h) {
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
     img.onload = function () { try {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElementNS('http://www.w3.org/1999/xhtml','canvas');
       canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d');
       // Clear and draw
       ctx.clearRect(0, 0, w, h);
@@ -629,7 +629,7 @@ async function doSingleComparison() {
   // - reference: draw the original embedded src image onto a canvas at (0,0) with width height refW refH
   // - candidate: the cropped svg we just created)
   // To get reference ImageData: draw src image into canvas directly
-  const referenceCanvas = document.createElement('canvas');
+  const referenceCanvas = document.createElementNS('http://www.w3.org/1999/xhtml','canvas');
   referenceCanvas.width = refW;
   referenceCanvas.height = refH;
   const refCtx = referenceCanvas.getContext('2d');
