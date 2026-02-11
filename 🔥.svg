@@ -461,25 +461,30 @@ function createCroppedSvgString() {
   return { svgString, w: Math.round(w), h: Math.round(h) };
 }
 
-// Create an Image from SVG string (via blob URL) and draw to canvas -> ImageData
+// Create an Image from SVG string (via blob URL) and draw to canvas ImageData
 function svgStringToImageData(svgString, w, h) {
   return new Promise((resolve, reject) => {
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
-    img.onload = function () { try {
-      const canvas = document.getElementById('clonvas');
-      canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d');
-      // Clear and draw
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-      const imgData = ctx.getImageData(0, 0, w, h);
-      URL.revokeObjectURL(url);
-      resolve({ imgData, canvas });
-      } catch (err) { URL.revokeObjectURL(url); reject(err); }
+    img.onload = function() {
+      try {
+        // Use OffscreenCanvas instead of regular canvas
+        const offscreenCanvas = new OffscreenCanvas(w, h);
+        const ctx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, w, h);
+        const imgData = ctx.getImageData(0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve({ imgData, canvas: offscreenCanvas });
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        reject(err);
+      }
     };
-    img.onerror = function (e) { URL.revokeObjectURL(url); reject(new Error('Failed to load SVG image')); }; 
-    // avoid tainting: the data URI image is embedded in the SVG so it should be same-origin
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load SVG image'));
+    };
     img.src = url;
   });
 }
@@ -629,10 +634,8 @@ async function doSingleComparison() {
   // - reference: draw the original embedded src image onto a canvas at (0,0) with width height refW refH
   // - candidate: the cropped svg we just created)
   // To get reference ImageData: draw src image into canvas directly
-  const referenceCanvas = document.getElementById('canvimage');
-  referenceCanvas.width = refW;
-  referenceCanvas.height = refH;
-  const refCtx = referenceCanvas.getContext('2d');
+  const referenceCanvas = new OffscreenCanvas(refW, refH);
+  const refCtx = referenceCanvas.getContext('2d', { willReadFrequently: true });
 
   // Draw reference image: easiest is to extract the image href and load it into an Image
   const srcImgEl = document.getElementById('src');
@@ -652,14 +655,14 @@ async function doSingleComparison() {
 
   const srcImg = await loadImageFromDataUri(srcHref);
   // draw reference
-  refCtx.clearRect(0,0,refW,refH);
+  refCtx.clearRect(0, 0, refW, refH);
   refCtx.drawImage(srcImg, 0, 0, refW, refH);
   const referenceData = refCtx.getImageData(0, 0, refW, refH);
 
   // candidate image: render the cropped SVG string to image data
   const { imgData: candidateData } = await svgStringToImageData(svgString, w, h);
 
-  // Compare with resemble-lite
+  // Compare them
   const result = compareImageData(referenceData, candidateData);
   return result;
 
