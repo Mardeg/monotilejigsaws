@@ -151,6 +151,217 @@ function hint(tX,tY) {
     cp.setAttribute("clip-path", "url(#edges)");
   }, 2000);
 }
+// Create embedded blob worker for pixel comparison
+const workerCode = `
+let imageData1 = null;
+let aData = null;
+let aw = null;
+let ah = null;
+
+self.onmessage = function(e) {
+  if (e.data.type === 'init') {
+    imageData1 = new ImageData(
+      new Uint8ClampedArray(e.data.pixels),
+      e.data.width,
+      e.data.height
+    );
+    aData = imageData1.data;
+    aw = e.data.width;
+    ah = e.data.height;
+  } else if (e.data.type === 'compare') {
+    const imageData2 = new ImageData(
+      new Uint8ClampedArray(e.data.pixels),
+      e.data.width,
+      e.data.height
+    );
+    
+    const result = compareImageData(imageData1, imageData2);
+    self.postMessage({ 
+      misMatchPercentage: result.misMatchPercentage
+    });
+  } else if (e.data.type === 'drawAndRead') {
+    // NEW: Handle canvas drawing and reading entirely in worker
+    const canvas = new OffscreenCanvas(e.data.width, e.data.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const img = new Image();
+    
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
+      const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
+      self.postMessage({
+        type: 'drawAndReadResult',
+        pixels: imgData.data.buffer,
+        width: e.data.width,
+        height: e.data.height
+      }, [imgData.data.buffer]);
+    };
+    
+    img.onerror = () => {
+      self.postMessage({ type: 'error', message: 'Failed to load image' });
+    };
+    
+    img.src = e.data.dataUri;
+  } else if (e.data.type === 'drawSvgAndRead') {
+    // NEW: Handle SVG rendering and reading entirely in worker
+    const canvas = new OffscreenCanvas(e.data.width, e.data.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const svgBlob = new Blob([e.data.svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
+      const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
+      URL.revokeObjectURL(url);
+      self.postMessage({
+        type: 'drawSvgAndReadResult',
+        pixels: imgData.data.buffer,
+        width: e.data.width,
+        height: e.data.height
+      }, [imgData.data.buffer]);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      self.postMessage({ type: 'error', message: 'Failed to render SVG' });
+    };
+    
+    img.src = url;
+  }
+};
+
+function boxBlurRGBA(src, w, h) { 
+  const out = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+      for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) {
+        for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
+          const i = (yy * w + xx) * 4;
+          rSum += src[i];
+          gSum += src[i + 1];
+          bSum += src[i + 2];
+          aSum += src[i + 3];
+          count++;
+        }
+      }
+      out[(y * w + x) * 4] = rSum / count;
+      out[(y * w + x) * 4 + 1] = gSum / count;
+      out[(y * w + x) * 4 + 2] = bSum / count;
+      out[(y * w + x) * 4 + 3] = aSum / count;
+    }
+  }
+  return out;
+}
+
+function isPossiblyAntialiased(x, y, dataArr, idx, otherArr) {
+  const centerLum = 0.2126 * dataArr[idx] + 0.7152 * dataArr[idx + 1] + 0.0722 * dataArr[idx + 2];
+  let bigNeighborDiff = 0;
+  const deltas = [ [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1] ];
+  for (const [dx, dy] of deltas) {
+    const nx = x + dx, ny = y + dy;
+    if (nx < 0 || nx >= aw || ny < 0 || ny >= ah) continue;
+    const nIdx = (ny * aw + nx) * 4;
+    const nLum = 0.2126 * dataArr[nIdx] + 0.7152 * dataArr[nIdx + 1] + 0.0722 * dataArr[nIdx + 2];
+    if (Math.abs(nLum - centerLum) > 18) bigNeighborDiff++;
+  }
+  const otherLum = 0.2126 * otherArr[idx] + 0.7152 * otherArr[idx + 1] + 0.0722 * otherArr[idx + 2];
+  const centerOtherDiff = Math.abs(centerLum - otherLum);
+  // Looser thresholds: treat as AA if neighbors vary a fair bit AND difference to other is relatively small
+  return (bigNeighborDiff >= 2) && (centerOtherDiff < 30);
+}
+
+function compareImageData(a, b) {
+  const bData = b.data;
+  if (aw !== b.width || ah !== b.height) throw new Error('Size mismatch'); 
+  const totalPixels = aw * ah;
+  
+  const aBlur = boxBlurRGBA(aData, aw, ah);
+  const bBlur = boxBlurRGBA(bData, aw, ah);
+
+  // Pixel comparison loop using blurred arrays and a Euclidean color distance tolerance
+  let diffCount = 0;
+  const colorTolerance = 20;
+  // Euclidean color distance tolerance (more tolerant than strict equality)
+  for (let y = 0; y < ah; y++) {
+    for (let x = 0; x < aw; x++) {
+      const idx = (y * aw + x) * 4;
+      const ar = aBlur[idx], ag = aBlur[idx + 1], ab = aBlur[idx + 2], aaVal = aBlur[idx + 3];
+      const br = bBlur[idx], bg = bBlur[idx + 1], bbVal = bBlur[idx + 2], baVal = bBlur[idx + 3];
+
+      // If both fully transparent, treat as match
+      if (aaVal === 0 && baVal === 0) continue;
+
+      // Euclidean color distance
+      const dr = ar - br, dg = ag - bg, db = ab - bbVal;
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+
+      if (dist <= colorTolerance) continue;
+
+      // Check anti-alias heuristic both ways on original (non-blurred) arrays to avoid falsely ignoring real differences
+      if (isPossiblyAntialiased(x, y, aData, idx, bData) || isPossiblyAntialiased(x, y, bData, idx, aData)) {
+        continue;
+      }
+
+      diffCount++;
+    }
+  }
+
+  const misMatchPercentage = (diffCount / totalPixels) * 100;
+  return { misMatchPercentage };
+}
+`;
+
+const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
+
+function initializePixelWorker() {
+  const refImageEl = document.getElementById('src');
+  const refW = (refImageEl.width && refImageEl.width.baseVal) ? refImageEl.width.baseVal.value : parseFloat(refImageEl.getAttribute('width') || '512');
+  const refH = (refImageEl.height && refImageEl.height.baseVal) ? refImageEl.height.baseVal.value : parseFloat(refImageEl.getAttribute('height') || '768');
+  const srcHref = refImageEl.getAttribute('href') || refImageEl.getAttributeNS('http://www.w3.org/1999/xlink','href');
+
+  // Ask worker to load and read the image
+  pixelWorker.postMessage({
+    type: 'drawAndRead',
+    dataUri: srcHref,
+    width: refW,
+    height: refH
+  });
+}
+
+// Listen for worker to send back reference data
+pixelWorker.addEventListener('message', (e) => {
+  if (e.data.type === 'drawAndReadResult') {
+    // Worker read it, now initialize comparison with those pixels
+    pixelWorker.postMessage({
+      type: 'init',
+      pixels: e.data.pixels,
+      width: e.data.width,
+      height: e.data.height
+    }, [e.data.pixels]);
+  } else if (e.data.type === 'drawSvgAndReadResult') {
+    // Worker read candidate SVG, now compare
+    pixelWorker.postMessage({
+      type: 'compare',
+      pixels: e.data.pixels,
+      width: e.data.width,
+      height: e.data.height
+    }, [e.data.pixels]);
+  }
+});
+
+pixelWorker.onmessage = function(e) {
+  const mm = e.data.misMatchPercentage;
+  const COMPLETE_THRESHOLD = 0.24;
+  
+  if ((mm - COMPLETE_THRESHOLD) > 0.5) {
+    document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
+  }
+  updateProgress(mm);
+  updateNotifyFromMisMatch(mm);
+};
+
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
     if (window.matchMedia("(prefers-color-scheme: light)").matches) lORd(document.getElementById("lod"),"m☀︎ves:");
@@ -158,6 +369,7 @@ document.onreadystatechange = () => {
     const svgCanvas = document.querySelector("svg"),ck = document.getElementById("timer");
     let isDragging = false,wb = 1;
     let xcoord,ycoord,cel;
+    initializePixelWorker();
     for (const u of document.querySelectorAll('g[transform^="translate"]')) {
       u.addEventListener("wheel", (e) => {
         e.preventDefault();
@@ -461,127 +673,6 @@ function createCroppedSvgString() {
   return { svgString, w: Math.round(w), h: Math.round(h) };
 }
 
-// Create an Image from SVG string (via blob URL) and draw to canvas ImageData
-function svgStringToImageData(svgString, w, h) {
-  return new Promise((resolve, reject) => {
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    img.onload = function() {
-      try {
-        // Use OffscreenCanvas instead of regular canvas
-        const offscreenCanvas = new OffscreenCanvas(w, h);
-        const ctx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
-        ctx.drawImage(img, 0, 0, w, h);
-        const imgData = ctx.getImageData(0, 0, w, h);
-        URL.revokeObjectURL(url);
-        resolve({ imgData, canvas: offscreenCanvas });
-      } catch (err) {
-        URL.revokeObjectURL(url);
-        reject(err);
-      }
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Failed to load SVG image'));
-    };
-    img.src = url;
-  });
-}
-
-// Simple comparator with an ignore-antialiasing heuristic.
-// Returns object { misMatchPercentage }
-function compareImageData(a, b) {
-  // a and b are ImageData (same dimensions) 
-  const aw = a.width, ah = a.height; 
-  if (aw !== b.width || ah !== b.height) throw new Error('Size mismatch'); 
-  const aData = a.data, bData = b.data; const totalPixels = aw * ah;
-  // Helper: luminance 
-  function lumAtIdxData(data, idx) {
-    const r = data[idx], g = data[idx + 1], bb = data[idx + 2];
-    return 0.2126 * r + 0.7152 * g + 0.0722 * bb;
-  }
-  // Simple 3x3 box blur on RGBA arrays (returns a Float32Array of same length)
-  function boxBlurRGBA(src, w, h) { 
-    const out = new Float32Array(src.length);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
-        for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) {
-          for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
-            const i = (yy * w + xx) * 4;
-            rSum += src[i];
-            gSum += src[i + 1];
-            bSum += src[i + 2];
-            aSum += src[i + 3];
-            count++;
-          }
-        }
-        const oi = (y * w + x) * 4;
-        out[oi] = rSum / count;
-        out[oi + 1] = gSum / count;
-        out[oi + 2] = bSum / count;
-        out[oi + 3] = aSum / count;
-      }
-    }
-    return out;
-  }
-
-  // Pre-blur both images to reduce AA and tiny subpixel differences
-  const aBlur = boxBlurRGBA(aData, aw, ah);
-  const bBlur = boxBlurRGBA(bData, aw, ah);
-
-  // Anti-alias heuristic (8 neighbors) with looser thresholds
-  function isPossiblyAntialiased(x, y, dataArr, idx, otherArr) {
-    const centerLum = 0.2126 * dataArr[idx] + 0.7152 * dataArr[idx + 1] + 0.0722 * dataArr[idx + 2];
-    let bigNeighborDiff = 0;
-    const deltas = [ [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1] ];
-    for (const [dx, dy] of deltas) {
-      const nx = x + dx, ny = y + dy;
-      if (nx < 0 || nx >= aw || ny < 0 || ny >= ah) continue;
-      const nIdx = (ny * aw + nx) * 4;
-      const nLum = 0.2126 * dataArr[nIdx] + 0.7152 * dataArr[nIdx + 1] + 0.0722 * dataArr[nIdx + 2];
-      if (Math.abs(nLum - centerLum) > 18) bigNeighborDiff++;
-    }
-    const otherLum = 0.2126 * otherArr[idx] + 0.7152 * otherArr[idx + 1] + 0.0722 * otherArr[idx + 2];
-    const centerOtherDiff = Math.abs(centerLum - otherLum);
-    // Looser thresholds: treat as AA if neighbors vary a fair bit AND difference to other is relatively small
-    return (bigNeighborDiff >= 2) && (centerOtherDiff < 30);
-  }
-
-  // Pixel comparison loop using blurred arrays and a Euclidean color distance tolerance
-  let diffCount = 0;
-  const colorTolerance = 20;
-  // Euclidean color distance tolerance (more tolerant than strict equality)
-  for (let y = 0; y < ah; y++) {
-    for (let x = 0; x < aw; x++) {
-      const idx = (y * aw + x) * 4;
-      const ar = aBlur[idx], ag = aBlur[idx + 1], ab = aBlur[idx + 2], aaVal = aBlur[idx + 3];
-      const br = bBlur[idx], bg = bBlur[idx + 1], bbVal = bBlur[idx + 2], baVal = bBlur[idx + 3];
-
-      // If both fully transparent, treat as match
-      if (aaVal === 0 && baVal === 0) continue;
-
-      // Euclidean color distance
-      const dr = ar - br, dg = ag - bg, db = ab - bbVal;
-      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
-
-      if (dist <= colorTolerance) continue;
-
-      // Check anti-alias heuristic both ways on original (non-blurred) arrays to avoid falsely ignoring real differences
-      if (isPossiblyAntialiased(x, y, aData, idx, bData) || isPossiblyAntialiased(x, y, bData, idx, aData)) {
-        continue;
-      }
-
-      diffCount++;
-    }
-
-  }
-
-  const misMatchPercentage = (diffCount / totalPixels) * 100;
-  return { misMatchPercentage };
-}
-
 // Update gradient stops so left -> green up to (100 - misMatch)%, then transparent
 function updateProgress(misMatch) {
   const grad = document.getElementById('jig_progress_grad');
@@ -625,47 +716,22 @@ async function doSingleComparison() {
   if (!crop) throw new Error('Could not create cropped svg string');
   const { svgString, w, h } = crop;
 
-  // Render the cropped clone to ImageData
-  const refImageEl = document.getElementById('src');
-  const refW = (refImageEl.width && refImageEl.width.baseVal) ? refImageEl.width.baseVal.value : parseFloat(refImageEl.getAttribute('width') || '512');
-  const refH = (refImageEl.height && refImageEl.height.baseVal) ? refImageEl.height.baseVal.value : parseFloat(refImageEl.getAttribute('height') || '768');
-
-  // Two images to compare:
-  // - reference: draw the original embedded src image onto a canvas at (0,0) with width height refW refH
-  // - candidate: the cropped svg we just created)
-  // To get reference ImageData: draw src image into canvas directly
-  const referenceCanvas = new OffscreenCanvas(refW, refH);
-  const refCtx = referenceCanvas.getContext('2d', { willReadFrequently: true });
-
-  // Draw reference image: easiest is to extract the image href and load it into an Image
-  const srcImgEl = document.getElementById('src');
-  if (!srcImgEl) throw new Error('No id="src" image found.');
-  const srcHref = srcImgEl.getAttribute('href') || srcImgEl.getAttributeNS('http://www.w3.org/1999/xlink','href');
-  if (!srcHref) throw new Error('id="src" has no href');
-
-  // create Image from data URI
-  function loadImageFromDataUri(dataUri) {
-    return new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => res(img);
-      img.onerror = (e) => rej(e);
-      img.src = dataUri;
+  return new Promise((resolve) => {
+    const tempHandler = (e) => {
+      if (e.data.type === 'misMatchResult') {
+        pixelWorker.removeEventListener('message', tempHandler);
+        resolve({ misMatchPercentage: e.data.misMatchPercentage });
+      }
+    };
+    pixelWorker.addEventListener('message', tempHandler);
+    
+    pixelWorker.postMessage({
+      type: 'drawSvgAndRead',
+      svgString: svgString,
+      width: w,
+      height: h
     });
-  }
-
-  const srcImg = await loadImageFromDataUri(srcHref);
-  // draw reference
-  refCtx.clearRect(0, 0, refW, refH);
-  refCtx.drawImage(srcImg, 0, 0, refW, refH);
-  const referenceData = refCtx.getImageData(0, 0, refW, refH);
-
-  // candidate image: render the cropped SVG string to image data
-  const { imgData: candidateData } = await svgStringToImageData(svgString, w, h);
-
-  // Compare them
-  const result = compareImageData(referenceData, candidateData);
-  return result;
-
+  });
 }
 
 // Main orchestration called from end-of-drag events
