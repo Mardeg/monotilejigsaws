@@ -474,12 +474,12 @@ function svgStringToImageData(svgString, w, h) {
       ctx.clearRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
       const imgData = ctx.getImageData(0, 0, w, h);
+      // Within an .svg file the canvas element must be inside a foreignObject element which causes some engines (looking at you Blink/Webkit) to mark it as tainted making the entire snap-in piece attachment feature fail.
       URL.revokeObjectURL(url);
       resolve({ imgData, canvas });
       } catch (err) { URL.revokeObjectURL(url); reject(err); }
     };
     img.onerror = function (e) { URL.revokeObjectURL(url); reject(new Error('Failed to load SVG image')); }; 
-    // avoid tainting: the data URI image is embedded in the SVG so it should be same-origin
     img.src = url;
   });
 }
