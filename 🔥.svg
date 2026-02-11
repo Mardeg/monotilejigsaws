@@ -183,18 +183,20 @@ self.onmessage = function(e) {
     // NEW: Handle canvas drawing and reading entirely in worker
     const canvas = new OffscreenCanvas(e.data.width, e.data.height);
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const img = new Image();
-    
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
-      const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
-      self.postMessage({
-        type: 'drawAndReadResult',
-        pixels: imgData.data.buffer,
-        width: e.data.width,
-        height: e.data.height
-      }, [imgData.data.buffer]);
-    };
+    fetch(e.data.dataUri)
+    .then(res => res.blob())
+    .then(blob => createImageBitmap(blob))
+    .then(img => {
+    ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
+    img.close();
+    const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
+    self.postMessage({
+      type: 'drawAndReadResult',
+      pixels: imgData.data.buffer,
+      width: e.data.width,
+      height: e.data.height
+    }, [imgData.data.buffer]);
+    });
     
     img.onerror = () => {
       self.postMessage({ type: 'error', message: 'Failed to load image' });
@@ -202,24 +204,23 @@ self.onmessage = function(e) {
     
     img.src = e.data.dataUri;
   } else if (e.data.type === 'drawSvgAndRead') {
-    // NEW: Handle SVG rendering and reading entirely in worker
-    const canvas = new OffscreenCanvas(e.data.width, e.data.height);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const svgBlob = new Blob([e.data.svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
-      const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
-      URL.revokeObjectURL(url);
-      self.postMessage({
-        type: 'drawSvgAndReadResult',
-        pixels: imgData.data.buffer,
-        width: e.data.width,
-        height: e.data.height
-      }, [imgData.data.buffer]);
-    };
+      const canvas = new OffscreenCanvas(e.data.width, e.data.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const svgBlob = new Blob([e.data.svgString], { type: 'image/svg+xml;charset=utf-8' });
+
+      createImageBitmap(svgBlob, { resizeWidth: e.data.width, resizeHeight: e.data.height })
+        .then(img => {
+          ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
+          img.close();
+          const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
+          self.postMessage({
+            type: 'drawSvgAndReadResult',
+            pixels: imgData.data.buffer,
+            width: e.data.width,
+            height: e.data.height
+          }, [imgData.data.buffer]);
+        });
+    }
     
     img.onerror = () => {
       URL.revokeObjectURL(url);
@@ -715,7 +716,7 @@ async function doSingleComparison() {
   const crop = createCroppedSvgString();
   if (!crop) throw new Error('Could not create cropped svg string');
   const { svgString, w, h } = crop;
-
+  console.log("About to doSingleComparison with cropped svg");
   return new Promise((resolve) => {
     const tempHandler = (e) => {
       if (e.data.type === 'misMatchResult') {
@@ -739,7 +740,7 @@ async function checkMatchAndMaybeReport() {
   try {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
-	console.log(mm);
+    console.log(mm);
     // Update progress UI
     if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
     updateProgress(mm);
