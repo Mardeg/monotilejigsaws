@@ -151,26 +151,6 @@ function hint(tX,tY) {
     cp.setAttribute("clip-path", "url(#edges)");
   }, 2000);
 }
-// Create embedded blob worker for pixel comparison
-
-const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
-
-function initializePixelWorker() {
-  const refImageEl = document.getElementById('src');
-  const refW = (refImageEl.width && refImageEl.width.baseVal) ? refImageEl.width.baseVal.value : parseFloat(refImageEl.getAttribute('width') || '512');
-  const refH = (refImageEl.height && refImageEl.height.baseVal) ? refImageEl.height.baseVal.value : parseFloat(refImageEl.getAttribute('height') || '768');
-  const srcHref = refImageEl.getAttribute('href') || refImageEl.getAttributeNS('http://www.w3.org/1999/xlink','href');
-
-  // Ask worker to load and read the image
-  console.log('Initialized - width: ',refW,', height: ',refH);
-  pixelWorker.postMessage({
-    type: 'drawAndRead',
-    dataUri: srcHref,
-    width: refW,
-    height: refH
-  });
-}
 
 // Create embedded blob worker for pixel comparison
 const workerCode = `
@@ -334,6 +314,27 @@ function compareImageData(a, b) {
   return { misMatchPercentage };
 }
 `;
+
+// Create embedded blob worker for pixel comparison
+
+const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
+
+function initializePixelWorker() {
+  const refImageEl = document.getElementById('src');
+  const refW = (refImageEl.width && refImageEl.width.baseVal) ? refImageEl.width.baseVal.value : parseFloat(refImageEl.getAttribute('width') || '512');
+  const refH = (refImageEl.height && refImageEl.height.baseVal) ? refImageEl.height.baseVal.value : parseFloat(refImageEl.getAttribute('height') || '768');
+  const srcHref = refImageEl.getAttribute('href') || refImageEl.getAttributeNS('http://www.w3.org/1999/xlink','href');
+
+  // Ask worker to load and read the image
+  console.log('Initialized - width: ',refW,', height: ',refH);
+  pixelWorker.postMessage({
+    type: 'drawAndRead',
+    dataUri: srcHref,
+    width: refW,
+    height: refH
+  });
+}
 
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
