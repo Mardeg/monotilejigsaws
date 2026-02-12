@@ -461,26 +461,58 @@ function createCroppedSvgString() {
   return { svgString, w: Math.round(w), h: Math.round(h) };
 }
 
-// Create an Image from SVG string (via blob URL) and draw to canvas -> ImageData
 function svgStringToImageData(svgString, w, h) {
   return new Promise((resolve, reject) => {
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-    const img = new Image();
-    img.onload = function () { try {
-      const canvas = document.getElementById('clonvas');
-      canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d');
-      // Clear and draw
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
-      const imgData = ctx.getImageData(0, 0, w, h);
-      // Within an .svg file the canvas element must be inside a foreignObject element which causes some engines (looking at you Blink/Webkit) to mark it as tainted making the entire snap-in piece attachment feature fail.
-      URL.revokeObjectURL(url);
-      resolve({ imgData, canvas });
-      } catch (err) { URL.revokeObjectURL(url); reject(err); }
-    };
-    img.onerror = function (e) { URL.revokeObjectURL(url); reject(new Error('Failed to load SVG image')); }; 
-    img.src = url;
+    try {
+      // XMLSerializer output may include an XML declaration — strip it
+      svgString = svgString.replace(
+        /^\s*<\?xml[^>]*>\s*/i,
+        ''
+      );
+
+      // Ensure SVG namespace exists (XMLSerializer can omit it)
+      if (!/xmlns=/.test(svgString)) {
+        svgString = svgString.replace(
+          /^<svg/i,
+          '<svg xmlns="http://www.w3.org/2000/svg"'
+        );
+      }
+
+      // Encode as UTF-8 data URL (NOT base64)
+      const encoded = encodeURIComponent(svgString)
+        .replace(/#/g, '%23')
+        .replace(/\n/g, '')
+        .replace(/\r/g, '');
+
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encoded}`;
+
+      const img = new Image();
+
+      img.onload = () => {
+        try {
+          const canvas = document.getElementById('clonvas');
+          canvas.width = w;
+          canvas.height = h;
+
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const imgData = ctx.getImageData(0, 0, w, h);
+          resolve({ imgData, canvas });
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        reject(new Error('Failed to load serialized SVG'));
+      };
+
+      img.src = dataUrl;
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -705,6 +737,39 @@ if (svgCheckvas) {
 })();
 
 /* END: progress */
+async function initializeReferenceData() {
+  const refImageEl = document.getElementById('src');
+  const refW = (refImageEl.width && refImageEl.width.baseVal) ? refImageEl.width.baseVal.value : parseFloat(refImageEl.getAttribute('width') || '512');
+  const refH = (refImageEl.height && refImageEl.height.baseVal) ? refImageEl.height.baseVal.value : parseFloat(refImageEl.getAttribute('height') || '768');
+
+  const referenceCanvas = document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
+  referenceCanvas.width = refW;
+  referenceCanvas.height = refH;
+  const refCtx = referenceCanvas.getContext('2d', { willReadFrequently: true });
+
+  const srcImgEl = document.getElementById('src');
+  const srcHref = srcImgEl.getAttribute('href') || srcImgEl.getAttributeNS('http://www.w3.org/1999/xlink','href');
+
+  function loadImageFromDataUri(dataUri) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = (e) => rej(e);
+      img.src = dataUri;
+    });
+  }
+
+  const srcImg = await loadImageFromDataUri(srcHref);
+  refCtx.drawImage(srcImg, 0, 0, refW, refH);
+  const referenceData = refCtx.getImageData(0, 0, refW, refH);
+
+  pixelWorker.postMessage({
+    type: 'init',
+    pixels: referenceData.data.buffer,
+    width: referenceData.width,
+    height: referenceData.height
+  }, [referenceData.data.buffer]);
+}
 
 /* ]]> */
 // @license-end
