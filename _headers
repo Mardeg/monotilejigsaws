@@ -7,12 +7,12 @@
 
 /*.svg
   ! Content-Security-Policy
-  Content-Security-Policy: sandbox allow-scripts; frame-ancestors 'none'; media-src data:; worker-src *; style-src 'unsafe-inline'; script-src 'unsafe-inline';
+  Content-Security-Policy: sandbox allow-scripts; frame-ancestors 'none'; media-src data:; worker-src 'self' blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline';
   
 /waterfalls/*.svg
   ! Content-Security-Policy
-  Content-Security-Policy: sandbox allow-scripts; frame-ancestors 'none'; media-src data:; worker-src *; style-src 'unsafe-inline'; script-src 'unsafe-inline';
+  Content-Security-Policy: sandbox allow-scripts; frame-ancestors 'none'; media-src data:; worker-src 'self' blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline';
 
 /📚/*.svg
   ! Content-Security-Policy
-  Content-Security-Policy: sandbox allow-scripts; frame-ancestors 'none'; media-src data:; worker-src *; style-src 'unsafe-inline'; script-src 'unsafe-inline';
+  Content-Security-Policy: sandbox allow-scripts; frame-ancestors 'none'; media-src data:; worker-src 'self' blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline';
