@@ -169,6 +169,172 @@ function initializePixelWorker() {
   });
 }
 
+// Create embedded blob worker for pixel comparison
+const workerCode = `
+let imageData1 = null;
+let aData = null;
+let aw = null;
+let ah = null;
+
+self.onmessage = function(e) {
+    console.log('type: ',e.data.type);
+    if (e.data.type === 'init') {
+    imageData1 = new ImageData(
+      new Uint8ClampedArray(e.data.pixels),
+      e.data.width,
+      e.data.height
+    );
+    aData = imageData1.data;
+    aw = e.data.width;
+    ah = e.data.height;
+  } else if (e.data.type === 'compare') {
+    const imageData2 = new ImageData(
+      new Uint8ClampedArray(e.data.pixels),
+      e.data.width,
+      e.data.height
+    );
+    
+    const result = compareImageData(imageData1, imageData2);
+    self.postMessage({ 
+      misMatchPercentage: result.misMatchPercentage
+    });
+  } else if (e.data.type === 'drawAndRead') {
+    // NEW: Handle canvas drawing and reading entirely in worker
+    const canvas = new OffscreenCanvas(e.data.width, e.data.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    fetch(e.data.dataUri)
+    .then(res => res.blob())
+    .then(blob => createImageBitmap(blob))
+    .then(img => {
+    ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
+    img.close();
+    const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
+    self.postMessage({
+      type: 'drawAndReadResult',
+      pixels: imgData.data.buffer,
+      width: e.data.width,
+      height: e.data.height
+    }, [imgData.data.buffer]);
+    });
+    
+    img.onerror = () => {
+      self.postMessage({ type: 'error', message: 'Failed to load image' });
+    };
+    
+    img.src = e.data.dataUri;
+  } else if (e.data.type === 'drawSvgAndRead') {
+      const canvas = new OffscreenCanvas(e.data.width, e.data.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const svgBlob = new Blob([e.data.svgString], { type: 'image/svg+xml;charset=utf-8' });
+
+      createImageBitmap(svgBlob, { resizeWidth: e.data.width, resizeHeight: e.data.height })
+        .then(img => {
+          ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
+          img.close();
+          const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
+          self.postMessage({
+            type: 'drawSvgAndReadResult',
+            pixels: imgData.data.buffer,
+            width: e.data.width,
+            height: e.data.height
+          }, [imgData.data.buffer]);
+        });
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      self.postMessage({ type: 'error', message: 'Failed to render SVG' });
+    };
+    
+    img.src = url;
+  }
+};
+
+function boxBlurRGBA(src, w, h) { 
+  const out = new Float32Array(src.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+      for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) {
+        for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
+          const i = (yy * w + xx) * 4;
+          rSum += src[i];
+          gSum += src[i + 1];
+          bSum += src[i + 2];
+          aSum += src[i + 3];
+          count++;
+        }
+      }
+      out[(y * w + x) * 4] = rSum / count;
+      out[(y * w + x) * 4 + 1] = gSum / count;
+      out[(y * w + x) * 4 + 2] = bSum / count;
+      out[(y * w + x) * 4 + 3] = aSum / count;
+    }
+  }
+  return out;
+}
+
+function isPossiblyAntialiased(x, y, dataArr, idx, otherArr) {
+  const centerLum = 0.2126 * dataArr[idx] + 0.7152 * dataArr[idx + 1] + 0.0722 * dataArr[idx + 2];
+  let bigNeighborDiff = 0;
+  const deltas = [ [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1] ];
+  for (const [dx, dy] of deltas) {
+    const nx = x + dx, ny = y + dy;
+    if (nx < 0 || nx >= aw || ny < 0 || ny >= ah) continue;
+    const nIdx = (ny * aw + nx) * 4;
+    const nLum = 0.2126 * dataArr[nIdx] + 0.7152 * dataArr[nIdx + 1] + 0.0722 * dataArr[nIdx + 2];
+    if (Math.abs(nLum - centerLum) > 18) bigNeighborDiff++;
+  }
+  const otherLum = 0.2126 * otherArr[idx] + 0.7152 * otherArr[idx + 1] + 0.0722 * otherArr[idx + 2];
+  const centerOtherDiff = Math.abs(centerLum - otherLum);
+  // Looser thresholds: treat as AA if neighbors vary a fair bit AND difference to other is relatively small
+  return (bigNeighborDiff >= 2) && (centerOtherDiff < 30);
+}
+
+function compareImageData(a, b) {
+  const bData = b.data;
+  if (aw !== b.width || ah !== b.height) throw new Error('Size mismatch'); 
+  const totalPixels = aw * ah;
+  
+  const aBlur = boxBlurRGBA(aData, aw, ah);
+  const bBlur = boxBlurRGBA(bData, aw, ah);
+
+  // Pixel comparison loop using blurred arrays and a Euclidean color distance tolerance
+  let diffCount = 0;
+  const colorTolerance = 20;
+  // Euclidean color distance tolerance (more tolerant than strict equality)
+  for (let y = 0; y < ah; y++) {
+    for (let x = 0; x < aw; x++) {
+      const idx = (y * aw + x) * 4;
+      const ar = aBlur[idx], ag = aBlur[idx + 1], ab = aBlur[idx + 2], aaVal = aBlur[idx + 3];
+      const br = bBlur[idx], bg = bBlur[idx + 1], bbVal = bBlur[idx + 2], baVal = bBlur[idx + 3];
+
+      // If both fully transparent, treat as match
+      if (aaVal === 0 && baVal === 0) continue;
+
+      // Euclidean color distance
+      const dr = ar - br, dg = ag - bg, db = ab - bbVal;
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+
+      if (dist <= colorTolerance) continue;
+
+      // Check anti-alias heuristic both ways on original (non-blurred) arrays to avoid falsely ignoring real differences
+      if (isPossiblyAntialiased(x, y, aData, idx, bData) || isPossiblyAntialiased(x, y, bData, idx, aData)) {
+        continue;
+      }
+
+      diffCount++;
+    }
+  }
+
+  const misMatchPercentage = (diffCount / totalPixels) * 100;
+  return { misMatchPercentage };
+}
+`;
+
+const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
+
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
     if (window.matchMedia("(prefers-color-scheme: light)").matches) lORd(document.getElementById("lod"),"m☀︎ves:");
@@ -391,172 +557,6 @@ function onTouchCancel(e) {
 // Config 
 // percent
 const COMPLETE_THRESHOLD = 0.242;
-
-// Create embedded blob worker for pixel comparison
-const workerCode = `
-let imageData1 = null;
-let aData = null;
-let aw = null;
-let ah = null;
-
-self.onmessage = function(e) {
-    console.log('type: ',e.data.type);
-    if (e.data.type === 'init') {
-    imageData1 = new ImageData(
-      new Uint8ClampedArray(e.data.pixels),
-      e.data.width,
-      e.data.height
-    );
-    aData = imageData1.data;
-    aw = e.data.width;
-    ah = e.data.height;
-  } else if (e.data.type === 'compare') {
-    const imageData2 = new ImageData(
-      new Uint8ClampedArray(e.data.pixels),
-      e.data.width,
-      e.data.height
-    );
-    
-    const result = compareImageData(imageData1, imageData2);
-    self.postMessage({ 
-      misMatchPercentage: result.misMatchPercentage
-    });
-  } else if (e.data.type === 'drawAndRead') {
-    // NEW: Handle canvas drawing and reading entirely in worker
-    const canvas = new OffscreenCanvas(e.data.width, e.data.height);
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    fetch(e.data.dataUri)
-    .then(res => res.blob())
-    .then(blob => createImageBitmap(blob))
-    .then(img => {
-    ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
-    img.close();
-    const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
-    self.postMessage({
-      type: 'drawAndReadResult',
-      pixels: imgData.data.buffer,
-      width: e.data.width,
-      height: e.data.height
-    }, [imgData.data.buffer]);
-    });
-    
-    img.onerror = () => {
-      self.postMessage({ type: 'error', message: 'Failed to load image' });
-    };
-    
-    img.src = e.data.dataUri;
-  } else if (e.data.type === 'drawSvgAndRead') {
-      const canvas = new OffscreenCanvas(e.data.width, e.data.height);
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      const svgBlob = new Blob([e.data.svgString], { type: 'image/svg+xml;charset=utf-8' });
-
-      createImageBitmap(svgBlob, { resizeWidth: e.data.width, resizeHeight: e.data.height })
-        .then(img => {
-          ctx.drawImage(img, 0, 0, e.data.width, e.data.height);
-          img.close();
-          const imgData = ctx.getImageData(0, 0, e.data.width, e.data.height);
-          self.postMessage({
-            type: 'drawSvgAndReadResult',
-            pixels: imgData.data.buffer,
-            width: e.data.width,
-            height: e.data.height
-          }, [imgData.data.buffer]);
-        });
-    }
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      self.postMessage({ type: 'error', message: 'Failed to render SVG' });
-    };
-    
-    img.src = url;
-  }
-};
-
-function boxBlurRGBA(src, w, h) { 
-  const out = new Float32Array(src.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
-      for (let yy = Math.max(0, y - 1); yy <= Math.min(h - 1, y + 1); yy++) {
-        for (let xx = Math.max(0, x - 1); xx <= Math.min(w - 1, x + 1); xx++) {
-          const i = (yy * w + xx) * 4;
-          rSum += src[i];
-          gSum += src[i + 1];
-          bSum += src[i + 2];
-          aSum += src[i + 3];
-          count++;
-        }
-      }
-      out[(y * w + x) * 4] = rSum / count;
-      out[(y * w + x) * 4 + 1] = gSum / count;
-      out[(y * w + x) * 4 + 2] = bSum / count;
-      out[(y * w + x) * 4 + 3] = aSum / count;
-    }
-  }
-  return out;
-}
-
-function isPossiblyAntialiased(x, y, dataArr, idx, otherArr) {
-  const centerLum = 0.2126 * dataArr[idx] + 0.7152 * dataArr[idx + 1] + 0.0722 * dataArr[idx + 2];
-  let bigNeighborDiff = 0;
-  const deltas = [ [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1] ];
-  for (const [dx, dy] of deltas) {
-    const nx = x + dx, ny = y + dy;
-    if (nx < 0 || nx >= aw || ny < 0 || ny >= ah) continue;
-    const nIdx = (ny * aw + nx) * 4;
-    const nLum = 0.2126 * dataArr[nIdx] + 0.7152 * dataArr[nIdx + 1] + 0.0722 * dataArr[nIdx + 2];
-    if (Math.abs(nLum - centerLum) > 18) bigNeighborDiff++;
-  }
-  const otherLum = 0.2126 * otherArr[idx] + 0.7152 * otherArr[idx + 1] + 0.0722 * otherArr[idx + 2];
-  const centerOtherDiff = Math.abs(centerLum - otherLum);
-  // Looser thresholds: treat as AA if neighbors vary a fair bit AND difference to other is relatively small
-  return (bigNeighborDiff >= 2) && (centerOtherDiff < 30);
-}
-
-function compareImageData(a, b) {
-  const bData = b.data;
-  if (aw !== b.width || ah !== b.height) throw new Error('Size mismatch'); 
-  const totalPixels = aw * ah;
-  
-  const aBlur = boxBlurRGBA(aData, aw, ah);
-  const bBlur = boxBlurRGBA(bData, aw, ah);
-
-  // Pixel comparison loop using blurred arrays and a Euclidean color distance tolerance
-  let diffCount = 0;
-  const colorTolerance = 20;
-  // Euclidean color distance tolerance (more tolerant than strict equality)
-  for (let y = 0; y < ah; y++) {
-    for (let x = 0; x < aw; x++) {
-      const idx = (y * aw + x) * 4;
-      const ar = aBlur[idx], ag = aBlur[idx + 1], ab = aBlur[idx + 2], aaVal = aBlur[idx + 3];
-      const br = bBlur[idx], bg = bBlur[idx + 1], bbVal = bBlur[idx + 2], baVal = bBlur[idx + 3];
-
-      // If both fully transparent, treat as match
-      if (aaVal === 0 && baVal === 0) continue;
-
-      // Euclidean color distance
-      const dr = ar - br, dg = ag - bg, db = ab - bbVal;
-      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
-
-      if (dist <= colorTolerance) continue;
-
-      // Check anti-alias heuristic both ways on original (non-blurred) arrays to avoid falsely ignoring real differences
-      if (isPossiblyAntialiased(x, y, aData, idx, bData) || isPossiblyAntialiased(x, y, bData, idx, aData)) {
-        continue;
-      }
-
-      diffCount++;
-    }
-  }
-
-  const misMatchPercentage = (diffCount / totalPixels) * 100;
-  return { misMatchPercentage };
-}
-`;
-
-const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
 
 pixelWorker.onmessage = function(e) {
   const mm = e.data.misMatchPercentage;
