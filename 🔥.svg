@@ -332,29 +332,6 @@ function compareImageData(a, b) {
 }
 `;
 
-const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
-pixelWorker.addEventListener('message', (e) => {
-console.log('pixelWorker type:',e.data.type,' width: ',e.data.width,', height: ',e.data.height);
-if (e.data.type === 'drawAndReadResult') {
-  // Worker read it, now initialize comparison with those pixels
-  pixelWorker.postMessage({
-    type: 'init',
-    pixels: e.data.pixels,
-    width: e.data.width,
-    height: e.data.height
-   }, [e.data.pixels]);
- } else if (e.data.type === 'drawSvgAndReadResult') {
-   // Worker read candidate SVG, now compare
-   pixelWorker.postMessage({
-     type: 'compare',
-     pixels: e.data.pixels,
-     width: e.data.width,
-     height: e.data.height
-    }, [e.data.pixels]);
-  }
-});
-
 document.onreadystatechange = () => {
   if(document.readyState === "interactive") {
     if (window.matchMedia("(prefers-color-scheme: light)").matches) lORd(document.getElementById("lod"),"m☀︎ves:");
@@ -558,7 +535,11 @@ function onTouchCancel(e) {
 // percent
 const COMPLETE_THRESHOLD = 0.242;
 
+const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
+
 pixelWorker.onmessage = function(e) {
+  console.log('pixelWorker on type:',e.data.type,' width: ',e.data.width,', height: ',e.data.height);
   const mm = e.data.misMatchPercentage;
   const COMPLETE_THRESHOLD = 0.24;
   
@@ -774,7 +755,26 @@ if (svgCheckvas) {
       checkMatchAndMaybeReport();
     }, 50);
   }, false);
-
+  pixelWorker.addEventListener('message', (e) => {
+  console.log('pixelWorker listener type:',e.data.type,' width: ',e.data.width,', height: ',e.data.height);
+  if (e.data.type === 'drawAndReadResult') {
+    // Worker read it, now initialize comparison with those pixels
+    pixelWorker.postMessage({
+      type: 'init',
+      pixels: e.data.pixels,
+      width: e.data.width,
+      height: e.data.height
+     }, [e.data.pixels]);
+   } else if (e.data.type === 'drawSvgAndReadResult') {
+     // Worker read candidate SVG, now compare
+     pixelWorker.postMessage({
+       type: 'compare',
+       pixels: e.data.pixels,
+       width: e.data.width,
+       height: e.data.height
+      }, [e.data.pixels]);
+    }
+  });
 }
 
 })();
