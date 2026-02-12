@@ -153,6 +153,9 @@ function hint(tX,tY) {
 }
 // Create embedded blob worker for pixel comparison
 
+const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
+
 function initializePixelWorker() {
   const refImageEl = document.getElementById('src');
   const refW = (refImageEl.width && refImageEl.width.baseVal) ? refImageEl.width.baseVal.value : parseFloat(refImageEl.getAttribute('width') || '512');
@@ -534,9 +537,6 @@ function onTouchCancel(e) {
 // Config 
 // percent
 const COMPLETE_THRESHOLD = 0.242;
-
-const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
-const pixelWorker = new Worker(URL.createObjectURL(workerBlob));
 
 pixelWorker.onmessage = function(e) {
   console.log('pixelWorker on type:',e.data.type,' width: ',e.data.width,', height: ',e.data.height);
