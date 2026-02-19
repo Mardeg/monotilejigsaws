@@ -732,9 +732,9 @@ if (svgCheckvas) {
     setTimeout(() => { checkMatchAndMaybeReport(); }, 50);
   }, false);
 
-  svgCheckvas.addEventListener('touchend', function () {
+  svgCheckvas.addEventListener('touchend', function (e) {
     setTimeout(() => {
-      checkMatchAndMaybeReport();
+      if(insideJigsaw(e.changedTouches[0])checkMatchAndMaybeReport();
     }, 50);
   }, false);
 
