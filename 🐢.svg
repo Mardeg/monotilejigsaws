@@ -710,7 +710,7 @@ async function checkMatchAndMaybeReport() {
     const res = await doSingleComparison();
     const mm = res.misMatchPercentage;
     // Update progress UI
-    if ((mm - COMPLETE_THRESHOLD) > 0.5) document.getElementById("jig_progress_rect").setAttribute("stroke","#050");
+    if ((mm - COMPLETE_THRESHOLD) > 0.5) {document.getElementById("jig_progress_rect").setAttribute("stroke","#050");document.querySelector('image[width="300"]').setAttribute("style","opacity:0");}
     // attempt to snap NOTIFY_PIECE_PLACED to an array entry if misMatch is within ±0.14
     updateNotifyFromMisMatch(mm);
   } catch (err) {
