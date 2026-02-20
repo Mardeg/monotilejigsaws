@@ -1131,7 +1131,7 @@ d="m 10.82775,20.460318 c -1.746242,-3.175 -3.5454137,-3.175 -5.2916661,-10e-6 -
 <text onpointerdown="lORd(this,this.textContent)"
   id="lod" x="175" y="40" font-size="48px" font-family="serif" font-weight="900" fill="#777">m☀︎ves:</text>
 <text id="moves" x="175" y="88" font-size="48px" font-family="serif" font-weight="900" fill="#777">0000000</text>
-<g id="timer" font-size="48px" font-family="serif" font-weight="900" mask="url(#tiMask)" filter="url(#glower)">
+<g id="timer" font-size="48px" font-family="serif" font-weight="900" mask="url(#tiMask)" filter="url(#glower)" onmouseup="event.stopPropagation();event.preventDefault();" ontouchend="event.stopPropagation();event.preventDefault();">
 	<text id="minutesX10" x="36,38,36,36,36,36,36,36,36,36"
 		y="60,100,140,180,220,260,300,340,380,420">0123456789</text>
 	<text id="minutes" x="62,64,62,62,62,62,62,62,62,62"
